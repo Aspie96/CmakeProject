@@ -10,10 +10,10 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 3
+#define N 11
 #endif
 #ifndef WIDTH
-#define WIDTH 4096
+#define WIDTH 0
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
@@ -224,7 +224,7 @@ int main(void) {
 		printf(" Blurred in %f seconds!\n", time);
 		if(i == SAVED) {
 			checkCudaErrors(cudaMemcpy(img, img_d, sizeof(stbi_uc) * width * height * 3, cudaMemcpyDeviceToHost));
-			const char fname2[] = "D:\\Documents\\Visual Studio 2019\\Projects\\CMakeProject2\\image2.bmp";
+			const char fname2[] = "image2.bmp";
 			stbi_write_bmp(fname2, width, height, 3, img);
 		}
 	}
