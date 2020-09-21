@@ -6,9 +6,7 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
 
-#define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
-#define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
-#define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
+#define APPROX_DIVIDE(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
 #define N 11
 #endif
@@ -43,15 +41,29 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
+	extern __shared__ short tile[];
+	int tileW = blockDim.x + n - 1;
+	int tileH = blockDim.y + n - 1;
+	int blockS = blockDim.x * blockDim.y;
+	for(k = 0; k < (tileW * tileH) / blockS; k++) {
+		int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+		int imgX = blockDim.x * blockIdx.x - n / 2 +pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 +pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(imgY * width + imgX) * 3 + z] << 8 : 0;
+	}
+	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+	if(pos < tileW * tileH) {
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(imgY * width + imgX) * 3 + z] << 8 : 0;
+	}
+	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
-			if(0 <= l && l < width) {
-				c += filter1_d[k] * img[(j * width + l) * 3 + z];
-			}
+			c += filter1_d[k] * tile[(threadIdx.y + n / 2) * tileW + threadIdx.x + k];
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
 	}
 }
 
@@ -69,7 +81,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 				c += filter2_d[k] * img[(z * height + j) * width + l];
 			}
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
 	}
 }
 
@@ -87,7 +99,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 				c += filter2_d[k] * img[(z * height + l) * width + i];
 			}
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
 	}
 }
 
@@ -105,7 +117,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 				c += filter1_d[k] * img[(z * height + l) * width + i];
 			}
 		}
-		result[(j * width + i) * 3 + z] = APPROX_DIVIDE1(c, n + 7);
+		result[(j * width + i) * 3 + z] = APPROX_DIVIDE(c, n + 7);
 	}
 }
 
@@ -184,7 +196,9 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	dim3 threadsPerBlock(15, 15, 1);
 	cudaMemcpyToSymbol(filter1_d, filter1, sizeof(int) * n_init);
 	cudaMemcpyToSymbol(filter2_d, filter2, sizeof(int) * 15);
-	kernel1a<<<blocks, threadsPerBlock>>>(img_d, width, height, n_init, aux1_d);
+	//cudaError_t b = cudaGetLastError();
+	kernel1a<<<blocks, threadsPerBlock, sizeof(int) * (15 + n_init / 2) * (15 + n_init / 2) * 3>>>(img_d, width, height, n_init, aux1_d);
+	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
 		kernel2a<<<blocks, threadsPerBlock>>>(aux1_d, width, height, 15, aux2_d);
 		kernel1b<<<blocks, threadsPerBlock>>>(aux2_d, width, height, 15, aux1_d);
@@ -199,7 +213,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 	clock_t begin = clock();
 	blur(n, width, height, img_d, aux1_d, aux2_d);
 	clock_t end = clock();
-	return 0;
+	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
 int main(void) {
@@ -209,7 +223,7 @@ int main(void) {
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
 	if(WIDTH != 0) {
-		stbi_uc *img_r = (stbi_uc *)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
+		stbi_uc *img_r = (stbi_uc*)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
 		stbir_resize_uint8(img, width, height, 0, img_r, WIDTH, HEIGHT, 0, 3);
 		width = WIDTH;
 		height = HEIGHT;
@@ -229,6 +243,7 @@ int main(void) {
 		printf(" Blurred in %f seconds!\n", time);
 		if(i == SAVED) {
 			checkCudaErrors(cudaMemcpy(img, img_d, sizeof(stbi_uc) * width * height * 3, cudaMemcpyDeviceToHost));
+			//cudaError_t b = cudaGetLastError();
 			const char fname2[] = "image2.bmp";
 			stbi_write_bmp(fname2, width, height, 3, img);
 		}
