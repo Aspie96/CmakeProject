@@ -262,7 +262,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 
 int main(void) {
 	int nk = N;
-	const char fname[] = "img2.png";
+	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
