@@ -8,7 +8,7 @@
 
 #define APPROX_DIVIDE(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 11
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -41,7 +41,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ short tile[];
+	extern __shared__ unsigned short tile[];
 	int tileW = blockDim.x + n - 1;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
@@ -73,13 +73,27 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
+	extern __shared__ unsigned short tile[];
+	int tileW = blockDim.x + n - 1;
+	int tileH = blockDim.y + n - 1;
+	int blockS = blockDim.x * blockDim.y;
+	for(k = 0; k < (tileW * tileH) / blockS; k++) {
+		int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+	if(pos < tileW * tileH) {
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
-			if(0 <= l && l < width) {
-				c += filter2_d[k] * img[(z * height + j) * width + l];
-			}
+			c += filter2_d[k] * tile[(threadIdx.y + n / 2) * tileW + threadIdx.x + k];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
 	}
@@ -91,13 +105,27 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
+	extern __shared__ unsigned short tile[];
+	int tileW = blockDim.x + n - 1;
+	int tileH = blockDim.y + n - 1;
+	int blockS = blockDim.x * blockDim.y;
+	for(k = 0; k < (tileW * tileH) / blockS; k++) {
+		int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+	if(pos < tileW * tileH) {
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = j + k - n / 2;
-			if(0 <= l && l < height) {
-				c += filter2_d[k] * img[(z * height + l) * width + i];
-			}
+			c += filter2_d[k] * tile[(threadIdx.y + k) * tileW + (threadIdx.x + n / 2)];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
 	}
@@ -109,13 +137,27 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
+	extern __shared__ unsigned short tile[];
+	int tileW = blockDim.x + n - 1;
+	int tileH = blockDim.y + n - 1;
+	int blockS = blockDim.x * blockDim.y;
+	for(k = 0; k < (tileW * tileH) / blockS; k++) {
+		int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
+	if(pos < tileW * tileH) {
+		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
+		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	}
+	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = j + k - n / 2;
-			if(0 <= l && l < height) {
-				c += filter1_d[k] * img[(z * height + l) * width + i];
-			}
+			c += filter1_d[k] * tile[(threadIdx.y + k) * tileW + (threadIdx.x + n / 2)];
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE(c, n + 7);
 	}
@@ -198,13 +240,15 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaMemcpyToSymbol(filter2_d, filter2, sizeof(int) * 15);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a<<<blocks, threadsPerBlock, sizeof(int) * (15 + n_init / 2) * (15 + n_init / 2) * 3>>>(img_d, width, height, n_init, aux1_d);
+	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a<<<blocks, threadsPerBlock>>>(aux1_d, width, height, 15, aux2_d);
-		kernel1b<<<blocks, threadsPerBlock>>>(aux2_d, width, height, 15, aux1_d);
+		kernel2a<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux1_d, width, height, 15, aux2_d);
+		cudaDeviceSynchronize();
+		kernel1b<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux2_d, width, height, 15, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b<<<blocks, threadsPerBlock>>>(aux1_d, width, height, n_init, img_d);
+	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux1_d, width, height, n_init, img_d);
 	free(filter1);
 	free(filter2);
 }
