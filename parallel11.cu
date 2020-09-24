@@ -261,6 +261,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 }
 
 int main(void) {
+	printf("Parallel version - no constant memory - no shared memory\n");
 	int nk = N;
 	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
@@ -296,5 +297,6 @@ int main(void) {
 	cudaFree(aux2_d);
 	cudaFree(img_d);
 	cudaError_t b = cudaGetLastError();
+	printf("\n");
 	return 0;
 }
