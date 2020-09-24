@@ -251,7 +251,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 }
 
 int main(void) {
-	printf("Parallel version - no constant memory - no shared memory\n");
+	printf("Parallel version - no constant memory - yes shared memory\n");
 	int nk = N;
 	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
