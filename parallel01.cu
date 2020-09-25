@@ -6,7 +6,9 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
 
-#define APPROX_DIVIDE(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
+#define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
+#define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
+#define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
 #define N 13
 #endif
@@ -96,7 +98,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 		for(k = 0; k < n; k++) {
 			c += kernel[k] * tile[(threadIdx.y + k) * tileW + (threadIdx.x)];
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -128,7 +130,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 		for(k = 0; k < n; k++) {
 			c += kernel[k] * tile[(threadIdx.y + k) * tileW + (threadIdx.x)];
 		}
-		result[(j * width + i) * 3 + z] = APPROX_DIVIDE(c, n + 7);
+		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
 }
 
