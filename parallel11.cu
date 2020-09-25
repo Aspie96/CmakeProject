@@ -87,16 +87,18 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	int a = (tileW * tileH) / blockS;
 	int b = d * a;
 	int pos;
+	int g = blockDim.x * blockIdx.x;
+	int h = blockDim.y * blockIdx.y - n / 2;
 	for(k = 0; k < a; k++) {
 		pos = k + b;
-		int imgX = blockDim.x * blockIdx.x + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		int imgX = g + pos % tileW;
+		int imgY = h + pos / tileW;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	pos = blockS * k + d;
 	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		int imgX = g + pos % tileW;
+		int imgY = h + pos / tileW;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
@@ -123,16 +125,18 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 	int a = (tileW * tileH) / blockS;
 	int b = d * a;
 	int pos;
+	int g = blockDim.x * blockIdx.x;
+	int h = blockDim.y * blockIdx.y - n / 2;
 	for(k = 0; k < a; k++) {
 		pos = k + b;
-		int imgX = blockDim.x * blockIdx.x + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		int imgX = g + pos % tileW;
+		int imgY = h + pos / tileW;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	pos = blockS * k + d;
 	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos / tileW;
+		int imgX = g + pos % tileW;
+		int imgY = h + pos / tileW;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
