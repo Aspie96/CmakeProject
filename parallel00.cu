@@ -168,23 +168,23 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	filter2 = (int*)malloc(sizeof(int) * 15);
 	pascal(filter1, n_init);
 	pascal(filter2, 15);
-	dim3 blocks((width + 14) / 15, (height + 14) / 15, 3);
-	dim3 threadsPerBlock(15, 15, 1);
+	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
+	dim3 threadsPerBlock(32, 32, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 15, cudaMemcpyHostToDevice);
 	//cudaError_t b = cudaGetLastError();
-	kernel1a<<<blocks, threadsPerBlock, sizeof(int) * (15 + n_init / 2) * (15 + n_init / 2) * 3>>>(img_d, width, height, n_init, filter1_d, aux1_d);
+	kernel1a<<<blocks, threadsPerBlock>>>(img_d, width, height, n_init, filter1_d, aux1_d);
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a<<<blocks, threadsPerBlock >>>(aux1_d, width, height, 15, filter2_d, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b<<<blocks, threadsPerBlock >>>(aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(15 + 15 / 2) *(15 + 15 / 2) * 3 >>>(aux1_d, width, height, n_init, filter1_d, img_d);
+	kernel2b<<<blocks, threadsPerBlock >>>(aux1_d, width, height, n_init, filter1_d, img_d);
 	free(filter1);
 	free(filter2);
 }
@@ -199,7 +199,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - no shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
