@@ -79,11 +79,11 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ unsigned short tile[];
+	extern __shared__ unsigned int tile[];
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
-	int d = threadIdx.y * blockDim.x + threadIdx.x;
+	int d = threadIdx.x * blockDim.y + threadIdx.y;
 	int a = (tileW * tileH) / blockS;
 	int b = d * a;
 	int pos;
@@ -121,7 +121,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
-	int d = threadIdx.y * blockDim.x + threadIdx.x;
+	int d = threadIdx.x * blockDim.y + threadIdx.y;
 	int a = (tileW * tileH) / blockS;
 	int b = d * a;
 	int pos;
