@@ -79,7 +79,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ unsigned int tile[];
+	extern __shared__ unsigned short tile[];
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
