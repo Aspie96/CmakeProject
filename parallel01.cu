@@ -207,9 +207,9 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks, threadsPerBlock>> > (aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a << <blocks, threadsPerBlock, sizeof(int) *(32 + 15 / 2) *(32 + 15 / 2) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks, threadsPerBlock, sizeof(int) *(32 + 15 / 2) *(32 + 15 / 2) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
 	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(32 + n_init / 2) *(32 + n_init / 2) >>>(aux1_d, width, height, n_init, filter1_d, img_d);
