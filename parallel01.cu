@@ -76,7 +76,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ int tile[];
+	extern __shared__ unsigned short tile[];
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
@@ -108,7 +108,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ int tile[];
+	extern __shared__ unsigned short tile[];
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
@@ -207,12 +207,12 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks, threadsPerBlock, sizeof(int) *(32) *(32 + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a << <blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(32) *(32 + n_init - 1) >>>(aux1_d, width, height, n_init, filter1_d, img_d);
+	kernel2b<<<blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + n_init - 1) >>>(aux1_d, width, height, n_init, filter1_d, img_d);
 	free(filter1);
 	free(filter2);
 }
