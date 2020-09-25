@@ -75,24 +75,6 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
-	if(i < width && j < height) {
-		c = 0;
-		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
-			if(0 <= l && l < width) {
-				c += kernel[k] * img[(z * height + j) * width + l];
-			}
-		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
-	}
-}
-
-__global__
 void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *result) {
 	int i, j, z, k, l, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -152,7 +134,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 		for(k = 0; k < n; k++) {
 			c += filter1_d[k] * tile[(threadIdx.y + k) * tileW + (threadIdx.x + n / 2)];
 		}
-		result[(j * width + i) * 3 + z] = APPROX_DIVIDE(c, n + 7);
+		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
 }
 
