@@ -38,29 +38,15 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ unsigned short tile[];
-	int tileW = blockDim.x + n - 1;
-	int tileH = blockDim.y;
-	int blockS = blockDim.x * blockDim.y;
-	for(k = 0; k < (tileW * tileH) / blockS; k++) {
-		int pos = k + (threadIdx.y * blockDim.x + threadIdx.x) * ((tileW * tileH) / blockS);
-		int imgX = blockDim.x * blockIdx.x - n / 2 +pos % tileW;
-		int imgY = blockDim.y * blockIdx.y+pos / tileW;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(imgY * width + imgX) * 3 + z] << 8 : 0;
-	}
-	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
-	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y+ pos / tileW;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(imgY * width + imgX) * 3 + z] << 8 : 0;
-	}
-	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y) * tileW + threadIdx.x + k];
+			l = i + k - n / 2;
+			if(0 <= l && l < width) {
+				c += kernel[k] * img[(j * width + l) * 3 + z];
+			}
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
@@ -70,29 +56,15 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ unsigned short tile[];
-	int tileW = blockDim.x + n - 1;
-	int tileH = blockDim.y;
-	int blockS = blockDim.x * blockDim.y;
-	for(k = 0; k < (tileW * tileH) / blockS; k++) {
-		int pos = k + (threadIdx.y * blockDim.x + threadIdx.x) * ((tileW * tileH) / blockS);
-		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y + pos / tileW;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
-	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x - n / 2 + pos % tileW;
-		int imgY = blockDim.y * blockIdx.y + pos / tileW;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y) * tileW + threadIdx.x + k];
+			l = i + k - n / 2;
+			if(0 <= l && l < width) {
+				c += kernel[k] * img[(z * height + j) * width + l];
+			}
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE(c, n - 1);
+		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
