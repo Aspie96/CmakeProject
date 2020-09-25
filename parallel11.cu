@@ -217,12 +217,12 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a<<<blocks, threadsPerBlock, sizeof(int) *(32) *(32 + 15 / 2) * 3 >>>(aux1_d, width, height, 15, aux2_d);
+		kernel2a<<<blocks, threadsPerBlock, sizeof(int) *(32) *(32 + 15 / 2) >>>(aux1_d, width, height, 15, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b<<<blocks, threadsPerBlock >>>(aux2_d, width, height, 15, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(32) *(32 + 15 / 2) * 3 >>>(aux1_d, width, height, n_init, img_d);
+	kernel2b<<<blocks, threadsPerBlock, sizeof(int) *(32) *(32 + 15 / 2) >>>(aux1_d, width, height, n_init, img_d);
 	free(filter1);
 	free(filter2);
 }
