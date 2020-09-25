@@ -37,9 +37,8 @@ void checkCudaErrors(cudaError_t error) {
 
 }
 
-
 __global__
-void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *result) {
 	int i, j, z, k, l, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -49,7 +48,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(j * width + l) * 3 + z];
+				c += filter1_d[k] * img[(j * width + l) * 3 + z];
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
@@ -57,7 +56,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 }
 
 __global__
-void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel1b(unsigned short *img, int width, int height, int n, unsigned short *result) {
 	int i, j, z, k, l, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -67,7 +66,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(z * height + j) * width + l];
+				c += filter2_d[k] * img[(z * height + j) * width + l];
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
@@ -238,7 +237,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - yes constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "../../../img2.png";
+	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
