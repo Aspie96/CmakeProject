@@ -46,7 +46,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
+			l = i + k - n << 1;
 			if(0 <= l && l < width) {
 				c += filter1_d[k] * img[(j * width + l) * 3 + z];
 			}
@@ -64,7 +64,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
+			l = i + k - n << 1;
 			if(0 <= l && l < width) {
 				c += filter2_d[k] * img[(z * height + j) * width + l];
 			}
@@ -83,16 +83,17 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
-	int a = blockS - (tileW * tileH - ((tileW * tileH) / blockS) * blockS);
-	for(k = 0; k < (tileW * tileH) / blockS + (threadIdx.x * blockDim.y + threadIdx.y >= a); k++) {
+	int b = (tileW * tileH) / blockS;
+	int a = blockS - (tileW * tileH - (b * blockS);
+	for(k = 0; k < b + (threadIdx.x * blockDim.y + threadIdx.y >= a); k++) {
 		int pos;
 		if(threadIdx.x * blockDim.y + threadIdx.y < a) {
-			pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * ((tileW * tileH) / blockS);
+			pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * (b);
 		} else {
-			pos = k + a * ((tileW * tileH) / blockS) + (threadIdx.x * blockDim.y + threadIdx.y - a) * ((tileW * tileH) / blockS + 1);
+			pos = k + a * (b + (threadIdx.x * blockDim.y + threadIdx.y - a) * (b + 1);
 		}
 		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
+		int imgY = blockDim.y * blockIdx.y - n << 1 + pos % tileH;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
@@ -124,7 +125,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 			pos = k + a * ((tileW * tileH) / blockS) + (threadIdx.x * blockDim.y + threadIdx.y - a) * ((tileW * tileH) / blockS + 1);
 		}
 		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
+		int imgY = blockDim.y * blockIdx.y - n << 1 + pos % tileH;
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
