@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 5
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -83,17 +83,21 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	int tileW = blockDim.x;
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
-	for(k = 0; k < (tileW * tileH) / blockS; k++) {
-		int pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * ((tileW * tileH) / blockS);
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
-	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	int a = blockS - (tileW * tileH - ((tileW * tileH) / blockS) * blockS);
+	if(threadIdx.x * blockDim.y + threadIdx.y < a) {
+		for(k = 0; k < (tileW * tileH) / blockS; k++) {
+			int pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * ((tileW * tileH) / blockS);
+			int imgX = blockDim.x * blockIdx.x + pos / tileH;
+			int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
+			tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+		}
+	} else {
+		for(k = 0; k < (tileW * tileH) / blockS + 1; k++) {
+			int pos = k + a * ((tileW * tileH) / blockS) + (threadIdx.x * blockDim.y + threadIdx.y - a) * ((tileW * tileH) / blockS + 1);
+			int imgX = blockDim.x * blockIdx.x + pos / tileH;
+			int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
+			tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+		}
 	}
 	__syncthreads();
 	if(i < width && j < height) {
@@ -237,7 +241,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - yes constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
