@@ -128,7 +128,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += filter1_d[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			c += kernel[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
