@@ -84,13 +84,13 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	int tileH = blockDim.y + n - 1;
 	int blockS = blockDim.x * blockDim.y;
 	int b = (tileW * tileH) / blockS;
-	int a = blockS - (tileW * tileH - (b * blockS);
+	int a = blockS - (tileW * tileH - (b * blockS));
 	for(k = 0; k < b + (threadIdx.x * blockDim.y + threadIdx.y >= a); k++) {
 		int pos;
 		if(threadIdx.x * blockDim.y + threadIdx.y < a) {
 			pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * (b);
 		} else {
-			pos = k + a * (b + (threadIdx.x * blockDim.y + threadIdx.y - a) * (b + 1);
+			pos = k + a * (b + (threadIdx.x * blockDim.y + threadIdx.y - a)) * (b + 1);
 		}
 		int imgX = blockDim.x * blockIdx.x + pos / tileH;
 		int imgY = blockDim.y * blockIdx.y - n << 1 + pos % tileH;
