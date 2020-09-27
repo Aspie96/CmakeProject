@@ -35,17 +35,19 @@ void checkCudaErrors(cudaError_t error) {
 }
 
 __global__
-void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *result) {
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(j * width + l) * 3 + z];
+				c += t * img[(j * width + l) * 3 + z];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
@@ -53,17 +55,19 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 }
 
 __global__
-void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel1b(unsigned short *img, int width, int height, int n, unsigned short *result) {
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
-			if(0 <= l && l < width) {
-				c += kernel[k] * img[(z * height + j) * width + l];
+			if(0 <= l && l < width) {t *= (n - k) / (k + 1);
+				c += t * img[(z * height + j) * width + l];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
@@ -71,8 +75,8 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *result) {
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -93,18 +97,20 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
+	t = 1;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			c += t * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			t *= (n - k) / (k + 1);
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
 __global__
-void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, stbi_uc *result) {
-	int i, j, z, k, l, c;
+void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result) {
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -125,10 +131,12 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
 	}
 	__syncthreads();
+	t = 1;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			c += t * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			t *= (n - k) / (k + 1);
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
@@ -203,16 +211,16 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 15, cudaMemcpyHostToDevice);
 	//cudaError_t b = cudaGetLastError();
-	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, n_init, filter1_d, aux1_d);
+	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, n_init, aux1_d);
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a << <blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + 15 - 1) >> > (aux1_d, width, height, 15, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b<<<blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + n_init - 1) >>>(aux1_d, width, height, n_init, filter1_d, img_d);
+	kernel2b<<<blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + n_init - 1) >>>(aux1_d, width, height, n_init, img_d);
 	free(filter1);
 	free(filter2);
 }

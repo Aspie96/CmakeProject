@@ -42,9 +42,9 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
-			t = 1;
 			if(0 <= l && l < width) {
 				c += t * img[(j * width + l) * 3 + z];
 				t *= (n - k) / (k + 1);
@@ -62,9 +62,9 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
-			t = 1;
 			if(0 <= l && l < width) {
 				c += t * img[(z * height + j) * width + l];
 				t *= (n - k) / (k + 1);
@@ -82,9 +82,9 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
-			t = 1;
 			if(0 <= l && l < height) {
 				c += t * img[(z * height + l) * width + i];
 				t *= (n - k) / (k + 1);
@@ -102,9 +102,9 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
+		t = 1;
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
-			t = 1;
 			if(0 <= l && l < height) {
 				c += t * img[(z * height + l) * width + i];
 				t *= (n - k) / (k + 1);
