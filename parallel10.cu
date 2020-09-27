@@ -169,7 +169,7 @@ struct SimpleStruct {
 __constant__ int variable[2];
 
 __global__ void kernel() {
-	printf("%d %f\n", filter1_d[0], filter1_d[1]);
+	//printf("%d %f\n", filter1_d[0], filter1_d[1]);
 }
 
 void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
