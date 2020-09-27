@@ -22,9 +22,6 @@
 #define SAVED (N - 1)
 #endif
 
-__constant__ int filter1_d[15];
-__constant__ int filter2_d[15];
-
 void pascal(int *p, int n) {
 	n--;
 	p[0] = 1;
@@ -39,7 +36,7 @@ void checkCudaErrors(cudaError_t error) {
 
 __global__
 void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -47,8 +44,10 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
+			t = 1;
 			if(0 <= l && l < width) {
-				c += filter1_d[k] * img[(j * width + l) * 3 + z];
+				c += t * img[(j * width + l) * 3 + z];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
@@ -57,7 +56,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -65,8 +64,10 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
+			t = 1;
 			if(0 <= l && l < width) {
-				c += filter2_d[k] * img[(z * height + j) * width + l];
+				c += t * img[(z * height + j) * width + l];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
@@ -75,7 +76,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 
 __global__
 void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -83,8 +84,10 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
+			t = 1;
 			if(0 <= l && l < height) {
-				c += filter2_d[k] * img[(z * height + l) * width + i];
+				c += t * img[(z * height + l) * width + i];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
@@ -93,7 +96,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 
 __global__
 void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, t;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -101,8 +104,10 @@ void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
+			t = 1;
 			if(0 <= l && l < height) {
-				c += filter1_d[k] * img[(z * height + l) * width + i];
+				c += t * img[(z * height + l) * width + i];
+				t *= (n - k) / (k + 1);
 			}
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
@@ -182,8 +187,6 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
-	cudaMemcpyToSymbol(filter1_d, filter1, sizeof(int) * n_init);
-	cudaMemcpyToSymbol(filter2_d, filter2, sizeof(int) * 15);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a<<<blocks, threadsPerBlock>>>(img_d, width, height, n_init, aux1_d);
 	cudaDeviceSynchronize();
@@ -209,7 +212,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - yes constant memory - no shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
