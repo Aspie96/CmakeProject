@@ -37,7 +37,7 @@ void checkCudaErrors(cudaError_t error) {
 __global__
 void kernel1a(const stbi_uc *img, int width, int height, int n, long long *kernel, unsigned short *result) {
 	int i, j, z, k, l;
-	unsigned long long c;
+	long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -56,7 +56,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, long long *kerne
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, long long *kernel, unsigned short *result) {
 	int i, j, z, k, l;
-	unsigned long long c;
+	long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -75,7 +75,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, long long *kern
 __global__
 void kernel2a(unsigned short *img, int width, int height, int n, long long *kernel, unsigned short *result) {
 	int i, j, z, k, l;
-	unsigned long long c;
+	long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -94,7 +94,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, long long *kern
 __global__
 void kernel2b(unsigned short *img, int width, int height, int n, long long *kernel, stbi_uc *result) {
 	int i, j, z, k, l;
-	unsigned long long c;
+	long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
