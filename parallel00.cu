@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 10
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -22,7 +22,7 @@
 #define SAVED (N - 1)
 #endif
 
-void pascal(int *p, int n) {
+void pascal(long long *p, int n) {
 	n--;
 	p[0] = 1;
 	for(int k = 0; k < n; k++) {
@@ -35,8 +35,9 @@ void checkCudaErrors(cudaError_t error) {
 }
 
 __global__
-void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel1a(const stbi_uc *img, int width, int height, int n, long long *kernel, unsigned short *result) {
+	int i, j, z, k, l;
+	unsigned long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -53,8 +54,9 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 }
 
 __global__
-void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel1b(unsigned short *img, int width, int height, int n, long long *kernel, unsigned short *result) {
+	int i, j, z, k, l;
+	unsigned long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -71,8 +73,9 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+void kernel2a(unsigned short *img, int width, int height, int n, long long *kernel, unsigned short *result) {
+	int i, j, z, k, l;
+	unsigned long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -89,8 +92,9 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, stbi_uc *result) {
-	int i, j, z, k, l, c;
+void kernel2b(unsigned short *img, int width, int height, int n, long long *kernel, stbi_uc *result) {
+	int i, j, z, k, l;
+	unsigned long long c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -106,7 +110,7 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	}
 }
 
-void applyKernel1(const stbi_uc *img, int width, int height, int n, int *kernel, int *result) {
+void applyKernel1(const stbi_uc *img, int width, int height, int n, long long *kernel, long long *result) {
 	int i, j, k, l;
 	for(i = 0; i < width; i++) {
 		for(j = 0; j < height; j++) {
@@ -125,7 +129,7 @@ void applyKernel1(const stbi_uc *img, int width, int height, int n, int *kernel,
 	}
 }
 
-void applyKernel2(int *img, int width, int height, int n, int *kernel, stbi_uc *result) {
+void applyKernel2(long long *img, int width, int height, int n, long long *kernel, stbi_uc *result) {
 	int i, j, k, l, r, g, b;
 	for(i = 0; i < width; i++) {
 		for(j = 0; j < height; j++) {
@@ -154,34 +158,34 @@ void saxpy(int n, stbi_uc *y) {
 }
 
 void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
-	int *filter1;
-	int *filter2;
-	int *filter1_d;
-	int *filter2_d;
+	long long *filter1;
+	long long *filter2;
+	long long *filter1_d;
+	long long *filter2_d;
 	int n_init;
-	if(n <= 15 || (n - 1) % 14 == 0) {
-		n_init = 15;
+	if(n <= 47 || (n - 1) % 46 == 0) {
+		n_init = 47;
 	} else {
-		n_init = ((n - 1) % 14) + 1;
+		n_init = ((n - 1) % 46) + 1;
 	}
-	filter1 = (int*)malloc(sizeof(int) * n_init);
-	filter2 = (int*)malloc(sizeof(int) * 15);
+	filter1 = (long long*)malloc(sizeof(long long) * n_init);
+	filter2 = (long long*)malloc(sizeof(long long) * 47);
 	pascal(filter1, n_init);
-	pascal(filter2, 15);
+	pascal(filter2, 47);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
-	cudaMalloc(&filter1_d, sizeof(int) * n_init);
-	cudaMalloc(&filter2_d, sizeof(int) * 15);
-	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
-	cudaMemcpy(filter2_d, filter2, sizeof(int) * 15, cudaMemcpyHostToDevice);
+	cudaMalloc(&filter1_d, sizeof(long long) * n_init);
+	cudaMalloc(&filter2_d, sizeof(long long) * 47);
+	cudaMemcpy(filter1_d, filter1, sizeof(long long) * n_init, cudaMemcpyHostToDevice);
+	cudaMemcpy(filter2_d, filter2, sizeof(long long) * 47, cudaMemcpyHostToDevice);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a<<<blocks, threadsPerBlock>>>(img_d, width, height, n_init, filter1_d, aux1_d);
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
-	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a<<<blocks, threadsPerBlock >>>(aux1_d, width, height, 15, filter2_d, aux2_d);
+	for(int i = n_init; i < (n - 1); i += 46) {
+		kernel2a<<<blocks, threadsPerBlock >>>(aux1_d, width, height, 47, filter2_d, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b<<<blocks, threadsPerBlock >>>(aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b<<<blocks, threadsPerBlock >>>(aux2_d, width, height, 47, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
 	kernel2b<<<blocks, threadsPerBlock >>>(aux1_d, width, height, n_init, filter1_d, img_d);
@@ -199,7 +203,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - no shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
