@@ -24,9 +24,10 @@
 #endif
 
 void pascal(int *p, int n) {
+	int k;
 	n--;
 	p[0] = 1;
-	for(int k = 0; k < n; k++) {
+	for(k = 0; k < n; k++) {
 		p[k + 1] = p[k] * (n - k) / (k + 1);
 	}
 }
@@ -98,6 +99,7 @@ void blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsi
 	int *kernel1;
 	int *kernel2;
 	int n_init;
+	int i;
 	if(n <= 15 || (n - 1) % 14 == 0) {
 		n_init = 15;
 	} else {
@@ -108,7 +110,7 @@ void blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsi
 	pascal(kernel1, n_init);
 	pascal(kernel2, 15);
 	kernel1a(img, width, height, n_init, kernel1, aux1);
-	for(int i = n_init; i < (n - 1); i += 14) {
+	for(i = n_init; i < (n - 1); i += 14) {
 		kernel2a(aux1, width, height, 15, kernel2, aux2);
 		kernel1b(aux2, width, height, 15, kernel2, aux1);
 	}
@@ -127,7 +129,8 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	int nk = N;
 	int *ns = (int*)malloc(sizeof(int) * nk);
-	for(int i = 0; i < nk; i++) {
+	int i;
+	for(i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
 	const char fname[] = "./CmakeProject/img2.png";
@@ -146,7 +149,7 @@ int main(void) {
 	aux1 = (unsigned short*)malloc(sizeof(unsigned short) * width * height * 3);
 	aux2 = (unsigned short*)malloc(sizeof(unsigned short) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
-	for(int i = 0; i < nk; i++) {
+	for(i = 0; i < nk; i++) {
 		memcpy(img_c, img, sizeof(stbi_uc) * width * height * 3);
 		printf("Blurring with kernel size %d...", ns[i]);
 		double time = test_blur_time(ns[i], width, height, img_c, aux1, aux2);
