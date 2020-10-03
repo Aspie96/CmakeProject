@@ -11,7 +11,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 10
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -130,7 +130,7 @@ int main(void) {
 	for(int i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
-	const char fname[] = "../../../img2.png";
+	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_c;
