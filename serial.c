@@ -101,7 +101,7 @@ void blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsi
 	int n_init;
 	int i;
 	if(n <= 15 || (n - 1) % 14 == 0) {
-		n_init = 15;
+		n_init = n;
 	} else {
 		n_init = ((n - 1) % 14) + 1;
 	}
@@ -133,7 +133,7 @@ int main(void) {
 	for(i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_c;

@@ -172,7 +172,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	int *filter2;
 	int n_init;
 	if(n <= 15 || (n - 1) % 14 == 0) {
-		n_init = 15;
+		n_init = n;
 	} else {
 		n_init = ((n - 1) % 14) + 1;
 	}
