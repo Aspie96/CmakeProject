@@ -32,29 +32,17 @@ void pascal(int *p, int n) {
 	}
 }
 
-int min(int a, int b) {
-	if(a <= b) {
-		return a;
-	}
-	return b;
-}
-
-int max(int a, int b) {
-	if(a > b) {
-		return a;
-	}
-	return b;
-}
-
 void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
 	int i, j, z, k, l, c;
 	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++) {
 		c = 0;
-		for(k = max(n / 2 - i, 0); k < min(width - i + n / 2, n); k++) {
+		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
-			c += kernel[k] * img[(j * width + l) * 3 + z];
+			if(0 <= l && l < width) {
+				c += kernel[k] * img[(j * width + l) * 3 + z];
+			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
 	}
@@ -66,9 +54,11 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++) {
 		c = 0;
-		for(k = max(n / 2 - i, 0); k < min(width - i + n / 2, n); k++) {
+		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
-			c += kernel[k] * img[(z * height + j) * width + l];
+			if(0 <= l && l < width) {
+				c += kernel[k] * img[(z * height + j) * width + l];
+			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -79,9 +69,11 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++) {
 		c = 0;
-		for(k = max(n / 2 - j, 0); k < min(height - j + n / 2, n); k++) {
+		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
-			c += kernel[k] * img[(z * height + l) * width + i];
+			if(0 <= l && l < height) {
+				c += kernel[k] * img[(z * height + l) * width + i];
+			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -93,9 +85,11 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++) {
 		c = 0;
-		for(k = max(n / 2 - j, 0); k < min(width - j + n / 2, n); k++) {
+		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
-			c += kernel[k] * img[(z * height + l) * width + i];
+			if(0 <= l && l < height) {
+				c += kernel[k] * img[(z * height + l) * width + i];
+			}
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE1(c, n + 7);
 	}
