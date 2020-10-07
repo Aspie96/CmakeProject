@@ -32,6 +32,20 @@ void pascal(int *p, int n) {
 	}
 }
 
+int min(int a, int b) {
+	if(a <= b) {
+		return a;
+	}
+	return b;
+}
+
+int max(int a, int b) {
+	if(a > b) {
+		return a;
+	}
+	return b;
+}
+
 void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
 	int i, j, z, k, l, c;
 	for(i = 0; i < width; i++)
