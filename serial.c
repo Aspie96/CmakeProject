@@ -161,6 +161,6 @@ int main(void) {
 			stbi_write_bmp(fname2, width, height, 3, img);
 		}
 	}
-	print("\n");
+	printf("\n");
 	return 0;
 }
