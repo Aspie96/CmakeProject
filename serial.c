@@ -127,6 +127,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 }
 
 int main(void) {
+	printf("Serial version\n");
 	int nk = N;
 	int *ns = (int*)malloc(sizeof(int) * nk);
 	int i;
