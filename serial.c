@@ -14,7 +14,7 @@
 #define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH 0
+#define WIDTH (4 * 4096)
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
@@ -95,11 +95,12 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	}
 }
 
-void blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsigned short *aux2) {
+int blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsigned short *aux2) {
 	int *kernel1;
 	int *kernel2;
 	int n_init;
 	int i;
+	clock_t begin = clock();
 	if(n <= 15 || (n - 1) % 14 == 0) {
 		n_init = n;
 	} else {
@@ -110,18 +111,35 @@ void blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsi
 	pascal(kernel1, n_init);
 	pascal(kernel2, 15);
 	kernel1a(img, width, height, n_init, kernel1, aux1);
+	if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+		return 1;
+	}
 	for(i = n_init; i < (n - 1); i += 14) {
 		kernel2a(aux1, width, height, 15, kernel2, aux2);
+		if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+			return 1;
+		}
 		kernel1b(aux2, width, height, 15, kernel2, aux1);
+		if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+			return 1;
+		}
 	}
 	kernel2b(aux1, width, height, n_init, kernel1, img);
+	if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+		return 1;
+	}
 	free(kernel1);
 	free(kernel2);
+	return 0;
 }
 
 double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
 	clock_t begin = clock();
-	blur(n, width, height, img_d, aux1_d, aux2_d);
+	if(blur(n, width, height, img_d, aux1_d, aux2_d)) {
+		printf("Program failed");
+	} else {
+		printf("Success");
+	}
 	clock_t end = clock();
 	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
@@ -134,7 +152,7 @@ int main(void) {
 	for(i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_c;
