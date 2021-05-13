@@ -81,13 +81,13 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 	if(!((n >> 1) <= threadIdx.y && threadIdx.y < blockDim.y - (n >> 1))) {
 		int aux = (threadIdx.y < n >> 1) ? -(n >> 1) : (n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1;
-		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= j + aux && j + aux < height) ? img[(z * height + j + aux) * width + i]: 0;
+		tile[threadIdx.x * blockDim.y + (threadIdx.y + aux2)] = (0 <= j + aux && j + aux < height) ? img[(z * height + j + aux) * width + i]: 0;
 	}
 	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) * blockDim.x + threadIdx.x];
+			c += kernel[k] * tile[threadIdx.x * blockDim.y + (threadIdx.y + k)];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
