@@ -77,26 +77,17 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	extern __shared__ unsigned short tile[];
-	int tileW = blockDim.x;
-	int tileH = blockDim.y + n - 1;
-	int blockS = blockDim.x * blockDim.y;
-	for(k = 0; k < (tileW * tileH) / blockS; k++) {
-		int pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * ((tileW * tileH) / blockS);
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
-	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
+	tile[(threadIdx.y + (n >> 1)) * blockDim.x + threadIdx.x] = img[(z * height + j) * width + i];
+	if(!((n >> 1) <= threadIdx.y && threadIdx.y < blockDim.y - (n >> 1))) {
+		int aux = (threadIdx.y < n >> 1) ? -(n >> 1) : (n >> 1);
+		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1;
+		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= j + aux && j + aux < height) ? img[(z * height + j + aux) * width + i]: 0;
 	}
 	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			c += kernel[k] * tile[(threadIdx.y + k) * blockDim.x + threadIdx.x];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -108,27 +99,13 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	extern __shared__ unsigned short tile[];
-	int tileW = blockDim.x;
-	int tileH = blockDim.y + n - 1;
-	int blockS = blockDim.x * blockDim.y;
-	for(k = 0; k < (tileW * tileH) / blockS; k++) {
-		int pos = k + (threadIdx.x * blockDim.y + threadIdx.y) * ((tileW * tileH) / blockS);
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	int pos = blockDim.x * blockDim.y * k + threadIdx.y * blockDim.x + threadIdx.x;
-	if(pos < tileW * tileH) {
-		int imgX = blockDim.x * blockIdx.x + pos / tileH;
-		int imgY = blockDim.y * blockIdx.y - n / 2 + pos % tileH;
-		tile[pos] = (0 <= imgX && width > imgX && 0 <= imgY && height > imgY) ? img[(z * height + imgY) * width + imgX] : 0;
-	}
-	__syncthreads();
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) + (threadIdx.x) * tileH];
+			l = j + k - n / 2;
+			if(0 <= l && l < height) {
+				c += kernel[k] * img[(z * height + l) * width + i];
+			}
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
@@ -212,7 +189,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b << <blocks, threadsPerBlock, sizeof(unsigned short) *(32) *(32 + n_init - 1) >> > (aux1_d, width, height, n_init, filter1_d, img_d);
+	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, n_init, filter1_d, img_d);
 	free(filter1);
 	free(filter2);
 }
@@ -227,7 +204,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
@@ -250,7 +227,7 @@ int main(void) {
 		printf("Blurring with kernel size %d...", ks);
 		double time = test_blur_time(ks, width, height, img_d, aux1_d, aux2_d);
 		printf(" Blurred in %f seconds!\n", time);
-		if(i == SAVED) {
+		/*if(i == SAVED)*/ {
 			checkCudaErrors(cudaMemcpy(img, img_d, sizeof(stbi_uc) * width * height * 3, cudaMemcpyDeviceToHost));
 			//cudaError_t b = cudaGetLastError();
 			const char fname2[] = "image2.bmp";
