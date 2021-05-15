@@ -82,7 +82,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, in
 		tile[(threadIdx.y + (n >> 1) + blockDim.y * b) * blockDim.x + threadIdx.x] = img[(z * height + j) * width + i];
 	}
 	if(!((n >> 1) <= threadIdx.y && threadIdx.y < blockDim.y - (n >> 1))) {
-		int aux = (threadIdx.y < n >> 1) ? j1-(n >> 1) : j2+(n >> 1);
+		int aux = (threadIdx.y < n >> 1) ? ((blockIdx.y * nblock) * blockDim.y + threadIdx.y)-(n >> 1) : j +(n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y;
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i]: 0;
 	}
