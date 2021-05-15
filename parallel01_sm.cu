@@ -74,7 +74,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 __global__
 void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, int nblock, unsigned short *result) {
 	int i, j, z, k, l, c, b;
-	extern __shared__ unsigned short tile[];
+	extern __shared__ unsigned int tile[];
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	z = blockIdx.z;
 	for(b = 0; b < nblock; b++) {
