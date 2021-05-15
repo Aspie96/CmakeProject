@@ -72,22 +72,22 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, int nblock, unsigned short *result) {
 	int i, j, z, k, l, c, b;
 	extern __shared__ unsigned short tile[];
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	z = blockIdx.z;
-	for(b = 0; b < NBLOCK; b++) {
+	for(b = 0; b < nblock; b++) {
 		j = (blockIdx.y * 2 + b) * blockDim.y + threadIdx.y;
 		tile[(threadIdx.y + (n >> 1) + blockDim.y * b) * blockDim.x + threadIdx.x] = img[(z * height + j) * width + i];
 	}
 	if(!((n >> 1) <= threadIdx.y && threadIdx.y < blockDim.y - (n >> 1))) {
-		int aux = (threadIdx.y < n >> 1) ? ((blockIdx.y * NBLOCK) * blockDim.y + threadIdx.y)-(n >> 1) : j +(n >> 1);
+		int aux = (threadIdx.y < n >> 1) ? ((blockIdx.y * nblock) * blockDim.y + threadIdx.y)-(n >> 1) : j +(n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y;
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i]: 0;
 	}
 	__syncthreads();
-	for(b = 0; b < NBLOCK; b++) {
+	for(b = 0; b < nblock; b++) {
 		j = (blockIdx.y * 2 + b) * blockDim.y + threadIdx.y;
 		if(i < width && j < height) {
 			c = 0;
@@ -191,7 +191,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * NBLOCK + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * NBLOCK + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
