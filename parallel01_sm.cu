@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 10
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -85,6 +85,8 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, in
 		int aux = (threadIdx.y < n >> 1) ? blockIdx.y * nblock * blockDim.y + threadIdx.y - (n >> 1) : j + (n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y * (nblock - 1);
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i] : 0;
+	} else if(threadIdx.y == (n >> 1) + 1 && threadIdx.x < n) {
+		tile[blockDim.x * (blockDim.y * nblock + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
 	for(b = 0; b < nblock; b++) {
@@ -92,7 +94,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, in
 		if(i < width && j < height) {
 			c = 0;
 			for(k = 0; k < n; k++) {
-				c += kernel[k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
+				c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
 			}
 			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
