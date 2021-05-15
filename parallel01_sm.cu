@@ -87,14 +87,14 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, in
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i]: 0;
 	}
 	__syncthreads();
-	for(b = 0; b < nblock: b++) {
+	for(b = 0; b < nblock; b++) {
 		j = (blockIdx.y * 2 + b) * blockDim.y + threadIdx.y;
 		if(i < width && j < height) {
 			c = 0;
 			for(k = 0; k < n; k++) {
-				c += kernel[k] * tile[(threadIdx.y + k) * blockDim.x + threadIdx.x];
+				c += kernel[k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
 			}
-			result[(z * height + j1) * width + i] = APPROX_DIVIDE2(c, n - 1);
+			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
 	}
 }
@@ -191,7 +191,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * NBLOCK + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, nblock, aux2_d);
+		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * NBLOCK + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
