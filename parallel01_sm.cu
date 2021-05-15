@@ -21,6 +21,7 @@
 #ifndef SAVED
 #define SAVED (N - 1)
 #endif
+#define NBLOCK 2
 
 void pascal(int *p, int n) {
 	n--;
@@ -71,35 +72,30 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j1, j2, z, k, l, c;
+void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, int nblock, unsigned short *result) {
+	int i, j, z, k, l, c, b;
 	extern __shared__ unsigned short tile[];
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j1 = blockIdx.y * 2 * blockDim.y + threadIdx.y;
-	j2 = (blockIdx.y * 2 + 1) * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	// tile[blockDim.y * 2 + n - 1][blockDim.x];
-	tile[(threadIdx.y + (n >> 1)) * blockDim.x + threadIdx.x] = img[(z * height + j1) * width + i];
-	tile[(threadIdx.y + (n >> 1) + blockDim.y) * blockDim.x + threadIdx.x] = img[(z * height + j2) * width + i];
+	for(b = 0; b < nblock; b++) {
+		j = (blockIdx.y * 2 + b) * blockDim.y + threadIdx.y;
+		tile[(threadIdx.y + (n >> 1) + blockDim.y * b) * blockDim.x + threadIdx.x] = img[(z * height + j) * width + i];
+	}
 	if(!((n >> 1) <= threadIdx.y && threadIdx.y < blockDim.y - (n >> 1))) {
 		int aux = (threadIdx.y < n >> 1) ? j1-(n >> 1) : j2+(n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y;
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i]: 0;
 	}
 	__syncthreads();
-	if(i < width && j1 < height) {
-		c = 0;
-		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k) * blockDim.x + threadIdx.x];
+	for(b = 0; b < nblock: b++) {
+		j = (blockIdx.y * 2 + b) * blockDim.y + threadIdx.y;
+		if(i < width && j < height) {
+			c = 0;
+			for(k = 0; k < n; k++) {
+				c += kernel[k] * tile[(threadIdx.y + k) * blockDim.x + threadIdx.x];
+			}
+			result[(z * height + j1) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
-		result[(z * height + j1) * width + i] = APPROX_DIVIDE2(c, n - 1);
-	}
-	if(i < width && j2 < height) {
-		c = 0;
-		for(k = 0; k < n; k++) {
-			c += kernel[k] * tile[(threadIdx.y + k + blockDim.y) * blockDim.x + threadIdx.x];
-		}
-		result[(z * height + j2) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -184,7 +180,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter1, n_init);
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 blocks2((width + 31) / 32, (height + 31) / 64, 3);
+	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
@@ -195,7 +191,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * 2 + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, aux2_d);
+		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *(32) *(32 * NBLOCK + 15 - 1) >> > (aux1_d, width, height, 15, filter2_d, nblock, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
