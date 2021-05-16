@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 10
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -70,8 +70,9 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCKH * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
 		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCKH - 1);
 		tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
-	} else if(threadIdx.x == (n >> 1) + 1 && threadIdx.x < n) {
-		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.y] = kernel[threadIdx.y];
+	}
+	if(threadIdx.y == 0 && threadIdx.x < n) {
+		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
 	for(b = 0; b < NBLOCKH; b++) {
@@ -228,7 +229,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = "../../../img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
@@ -251,7 +252,7 @@ int main(void) {
 		printf("Blurring with kernel size %d...", ks);
 		double time = test_blur_time(ks, width, height, img_d, aux1_d, aux2_d);
 		printf(" Blurred in %f seconds!\n", time);
-		if(i == SAVED) {
+		{
 			checkCudaErrors(cudaMemcpy(img, img_d, sizeof(stbi_uc) * width * height * 3, cudaMemcpyDeviceToHost));
 			//cudaError_t b = cudaGetLastError();
 			const char fname2[] = "image2.bmp";
