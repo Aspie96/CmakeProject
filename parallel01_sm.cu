@@ -70,6 +70,8 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCKH * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
 		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCKH - 1);
 		tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
+	} else if(threadIdx.x == (n >> 1) + 1 && threadIdx.x < n) {
+		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.y] = kernel[threadIdx.y];
 	}
 	__syncthreads();
 	for(b = 0; b < NBLOCKH; b++) {
@@ -77,7 +79,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		if(i < width && j < height) {
 			c = 0;
 			for(k = 0; k < n; k++) {
-				c += kernel[k] * tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + b * blockDim.x + threadIdx.x + k];
+				c += tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + k] * tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + b * blockDim.x + threadIdx.x + k];
 			}
 			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
