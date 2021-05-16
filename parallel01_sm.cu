@@ -22,7 +22,7 @@
 #define SAVED (N - 1)
 #endif
 #define NBLOCK 8
-#define NBLOCKH 4
+#define NBLOCKH 2
 
 void pascal(int *p, int n) {
 	n--;
@@ -235,7 +235,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	for(int i = n_init; i < (n - 1); i += 14) {
 		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *((32) *(32 * NBLOCK + 15 - 1) + 15) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks, threadsPerBlock, sizeof(unsigned short) *((32) * (32 * NBLOCKH + 15 - 1) + 15) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b << <blocks3, threadsPerBlock, sizeof(unsigned short) *((32) * (32 * NBLOCKH + 15 - 1) + 15) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
 	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, n_init, filter1_d, img_d);
