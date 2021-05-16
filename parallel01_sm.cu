@@ -31,14 +31,6 @@ void pascal(int *p, int n) {
 	}
 }
 
-void pascals(unsigned short *p, int n) {
-	n--;
-	p[0] = 1;
-	for(int k = 0; k < n; k++) {
-		p[k + 1] = p[k] * (n - k) / (k + 1);
-	}
-}
-
 void checkCudaErrors(cudaError_t error) {
 
 }
@@ -80,7 +72,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *kernel, int nblock, unsigned short *result) {
+void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, int nblock, unsigned short *result) {
 	int i, j, z, k, l, c, b;
 	extern __shared__ unsigned short tile[];
 	i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -93,16 +85,16 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 		int aux = (threadIdx.y < n >> 1) ? blockIdx.y * nblock * blockDim.y + threadIdx.y - (n >> 1) : j + (n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y * (nblock - 1);
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i] : 0;
-	}/* else if(threadIdx.y == (n >> 1) + 1 && threadIdx.x < n) {
+	} else if(threadIdx.y == (n >> 1) + 1 && threadIdx.x < n) {
 		tile[blockDim.x * (blockDim.y * nblock + n - 1) + threadIdx.x] = kernel[threadIdx.x];
-	}*/
+	}
 	__syncthreads();
 	for(b = 0; b < nblock; b++) {
 		j = (blockIdx.y * nblock + b) * blockDim.y + threadIdx.y;
 		if(i < width && j < height) {
 			c = 0;
 			for(k = 0; k < n; k++) {
-				c += kernel[k]/*tile[blockDim.x * (blockDim.y * nblock + n - 1) + k]*/ * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
+				c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
 			}
 			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
@@ -177,10 +169,8 @@ void saxpy(int n, stbi_uc *y) {
 void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
 	int *filter1;
 	int *filter2;
-	unsigned short *filter3;
 	int *filter1_d;
 	int *filter2_d;
-	unsigned short *filter2s_d;
 	int n_init;
 	if(n <= 15 || (n - 1) % 14 == 0) {
 		n_init = 15;
@@ -189,25 +179,21 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	}
 	filter1 = (int *)malloc(sizeof(int) * n_init);
 	filter2 = (int *)malloc(sizeof(int) * 15);
-	filter3 = (unsigned short *)malloc(sizeof(short) * 15);
 	pascal(filter1, n_init);
 	pascal(filter2, 15);
-	pascals(filter3, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
-	cudaMalloc(&filter2s_d, sizeof(short) * 15);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 15, cudaMemcpyHostToDevice);
-	cudaMemcpy(filter2s_d, filter3, sizeof(short) * 15, cudaMemcpyHostToDevice);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, n_init, filter1_d, aux1_d);
 	cudaDeviceSynchronize();
 	//cudaError_t dd = cudaGetLastError();
 	for(int i = n_init; i < (n - 1); i += 14) {
-		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *((32) *(32 * NBLOCK + 15 - 1)) >> > (aux1_d, width, height, 15, filter2s_d, NBLOCK, aux2_d);
+		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *((32) *(32 * NBLOCK + 15 - 1) + 15) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
