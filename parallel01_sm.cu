@@ -22,7 +22,7 @@
 #define SAVED (N - 1)
 #endif
 #define NBLOCK 8
-#define NBLOCKH 2
+#define NBLOCKH 1
 
 void pascal(int *p, int n) {
 	n--;
@@ -71,8 +71,8 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCKH - 1);
 		tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
 	}
-	if(threadIdx.y == 0 && (n >> 1) <= threadIdx.x && threadIdx.x < n + (n >> 1)) {
-		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.x - (n >> 1)] = kernel[threadIdx.x - (n >> 1)];
+	if(threadIdx.y == 0 && threadIdx.x < n) {
+		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
 	for(b = 0; b < NBLOCKH; b++) {
