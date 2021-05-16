@@ -65,10 +65,10 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + (n >> 1) + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
 	}
 	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
-		/*int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCKH * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCKH - 1) * blockDim.x + threadIdx.x;
-		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCKH : (n >> 1) - blockDim.x;*/
-		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCKH * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
-		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCKH - 1);
+		int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCKH * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCKH - 1) * blockDim.x + threadIdx.x;
+		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCKH : (n >> 1) - blockDim.x;
+		/*int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCKH * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
+		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCKH - 1);*/
 		tile[threadIdx.y * (n - 1 + NBLOCKH * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
 	}
 	__syncthreads();
