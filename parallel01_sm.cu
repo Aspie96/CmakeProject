@@ -22,7 +22,7 @@
 #define SAVED (N - 1)
 #endif
 #define NBLOCK 8
-#define NBLOCKH 1
+#define NBLOCKH 4
 
 void pascal(int *p, int n) {
 	n--;
