@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 10
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -80,7 +80,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 
 __global__
-void kernel2a(unsigned short *img, int width, int height, int n, short *kernel, int nblock, unsigned short *result) {
+void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *kernel, int nblock, unsigned short *result) {
 	int i, j, z, k, l, c, b;
 	extern __shared__ unsigned short tile[];
 	i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -177,10 +177,10 @@ void saxpy(int n, stbi_uc *y) {
 void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
 	int *filter1;
 	int *filter2;
-	int *filter3;
+	unsigned short *filter3;
 	int *filter1_d;
 	int *filter2_d;
-	int *filter2s_d;
+	unsigned short *filter2s_d;
 	int n_init;
 	if(n <= 15 || (n - 1) % 14 == 0) {
 		n_init = 15;
@@ -189,7 +189,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	}
 	filter1 = (int *)malloc(sizeof(int) * n_init);
 	filter2 = (int *)malloc(sizeof(int) * 15);
-	filter3 = (int *)malloc(sizeof(short) * 15);
+	filter3 = (unsigned short *)malloc(sizeof(short) * 15);
 	pascal(filter1, n_init);
 	pascal(filter2, 15);
 	pascals(filter3, 15);
@@ -226,7 +226,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "../../../img2.png";
+	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
