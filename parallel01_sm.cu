@@ -177,8 +177,10 @@ void saxpy(int n, stbi_uc *y) {
 void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
 	int *filter1;
 	int *filter2;
+	int *filter3;
 	int *filter1_d;
 	int *filter2_d;
+	int *filter2s_d;
 	int n_init;
 	if(n <= 15 || (n - 1) % 14 == 0) {
 		n_init = 15;
@@ -198,7 +200,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 15, cudaMemcpyHostToDevice);
-	cudaMemcpy(filter2s_d, filter2s, sizeof(short) * 15, cudaMemcpyHostToDevice);
+	cudaMemcpy(filter2s_d, filter3, sizeof(short) * 15, cudaMemcpyHostToDevice);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, n_init, filter1_d, aux1_d);
 	cudaDeviceSynchronize();
