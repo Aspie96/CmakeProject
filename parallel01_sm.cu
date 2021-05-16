@@ -38,6 +38,29 @@ void checkCudaErrors(cudaError_t error) {
 
 __global__
 void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
+	/*
+	int i, j, z, k, l, c;
+	extern __shared__ unsigned short tile[];
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
+	tile[threadIdx.y * (n - 1 * blockDim.x) + (n >> 1) + threadIdx.x] = img[((height + j) * width + i) * 3 + z];
+	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
+		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
+		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1;
+		tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
+	}
+	if(threadIdx.y == 0 && threadIdx.x < n) {
+		tile[blockDim.x * (blockDim.y * NBLOCKH + n - 1) + threadIdx.x] = kernel[threadIdx.x];
+	}
+	__syncthreads();
+	if(i < width && j < height) {
+		c = 0;
+		for(k = 0; k < n; k++) {
+			c += tile[blockDim.x * (blockDim.y + n - 1) + k] * tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + k];
+		}
+		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+	}*/
 	int i, j, z, k, l, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -101,8 +124,7 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, in
 		int aux = (threadIdx.y < n >> 1) ? blockIdx.y * nblock * blockDim.y + threadIdx.y - (n >> 1) : j + (n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y * (nblock - 1);
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i] : 0;
-	}
-	if(threadIdx.y == 0 && threadIdx.x < n) {
+	} else if(threadIdx.y == (n >> 1) + 1 && threadIdx.x < n) {
 		tile[blockDim.x * (blockDim.y * nblock + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
@@ -200,6 +222,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
+	dim3 blocks3((width + 31) / 32 / NBLOCKH, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
