@@ -70,7 +70,7 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCK - 1);
 		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < height) ? img[(z * height + j) * width + aux] : 0;
 	}
-	if(threadIdx.y == 0 && threadIdx.x < n) {
+	if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
 		tile[blockDim.x * (blockDim.y * NBLOCK + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
