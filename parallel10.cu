@@ -23,7 +23,7 @@
 #endif
 
 __constant__ int filter1_d[15];
-__constant__ int filter2_d[15];
+__constant__ int filter2_d[8];
 
 void pascal(int *p, int n) {
 	n--;
@@ -57,17 +57,27 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, unsigned short *
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
 			l = i + k - n / 2;
+			m = 0;
 			if(0 <= l && l < width) {
-				c += filter2_d[k] * img[(z * height + j) * width + l];
+				m = img[(z * height + j) * width + l];
 			}
+			l = i + n - 1 - k - n / 2;
+			if(0 <= l && l < width) {
+				m += img[(z * height + j) * width + l];
+			}
+			c += filter2_d[k] * m;
+		}
+		l = i + k - n / 2;
+		if(0 <= l && l < width) {
+			c += filter2_d[k] * img[(z * height + j) * width + l];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -75,37 +85,27 @@ void kernel1b(unsigned short *img, int width, int height, int n, unsigned short 
 
 __global__
 void kernel2a(unsigned short *img, int width, int height, int n, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
+			m = 0;
 			if(0 <= l && l < height) {
-				c += filter2_d[k] * img[(z * height + l) * width + i];
+				m = img[(z * height + l) * width + i];
 			}
+			l = j + n - 1 - k - n / 2;
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * width + i];
+			}
+			c += filter2_d[k] * m;
 		}
+		l = j + k - n / 2;
+		c += filter2_d[k] * img[(z * height + l) * width + i];
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
-	}
-}
-
-__global__
-void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result) {
-	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
-	if(i < width && j < height) {
-		c = 0;
-		for(k = 0; k < n; k++) {
-			l = j + k - n / 2;
-			if(0 <= l && l < height) {
-				c += filter1_d[k] * img[(z * height + l) * width + i];
-			}
-		}
-		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
 	}
 }
 
@@ -183,7 +183,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	cudaMemcpyToSymbol(filter1_d, filter1, sizeof(int) * n_init);
-	cudaMemcpyToSymbol(filter2_d, filter2, sizeof(int) * 15);
+	cudaMemcpyToSymbol(filter2_d, filter2, sizeof(int) * 8);
 	//cudaError_t b = cudaGetLastError();
 	kernel1a<<<blocks, threadsPerBlock>>>(img_d, width, height, n_init, aux1_d);
 	cudaDeviceSynchronize();
