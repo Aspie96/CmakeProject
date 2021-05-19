@@ -54,17 +54,27 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
 			l = i + k - n / 2;
+			m = 0;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(z * height + j) * width + l];
+				m = img[(z * height + j) * width + l];
 			}
+			l = i + n - 1 - k - n / 2;
+			if(0 <= l && l < width) {
+				m += img[(z * height + j) * width + l];
+			}
+			c += kernel[k] * m;
+		}
+		l = i + k - n / 2;
+		if(0 <= l && l < width) {
+			c += kernel[k] * img[(z * height + j) * width + l];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -72,17 +82,27 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 
 __global__
 void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
+			m = 0;
 			if(0 <= l && l < height) {
-				c += kernel[k] * img[(z * height + l) * width + i];
+				m = img[(z * height + l) * width + i];
 			}
+			l = j + n - 1 - k - n / 2;
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * width + i];
+			}
+			c += kernel[k] * m;
+		}
+		l = j + k - n / 2;
+		if(0 <= l && l < height) {
+			c += kernel[k] * img[(z * height + l) * width + i];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}

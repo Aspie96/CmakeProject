@@ -104,7 +104,9 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 			c += filter2_d[k] * m;
 		}
 		l = j + k - n / 2;
-		c += filter2_d[k] * img[(z * height + l) * width + i];
+		if(0 <= l && l < height) {
+			c += filter2_d[k] * img[(z * height + l) * width + i];
+		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
