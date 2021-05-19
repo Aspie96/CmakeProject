@@ -109,6 +109,24 @@ void kernel2a(unsigned short *img, int width, int height, int n, unsigned short 
 	}
 }
 
+__global__
+void kernel2b(unsigned short *img, int width, int height, int n, stbi_uc *result) {
+	int i, j, z, k, l, c;
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
+	if(i < width && j < height) {
+		c = 0;
+		for(k = 0; k < n; k++) {
+			l = j + k - n / 2;
+			if(0 <= l && l < height) {
+				c += filter1_d[k] * img[(z * height + l) * width + i];
+			}
+		}
+		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
+	}
+}
+
 void applyKernel1(const stbi_uc *img, int width, int height, int n, int *kernel, int *result) {
 	int i, j, k, l;
 	for(i = 0; i < width; i++) {
