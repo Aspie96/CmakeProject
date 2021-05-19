@@ -104,20 +104,24 @@ void kernel2a(unsigned short *img, int width, int height, int n, int nblock, uns
 		int aux = (threadIdx.y < n >> 1) ? blockIdx.y * nblock * blockDim.y + threadIdx.y - (n >> 1) : j + (n >> 1);
 		int aux2 = (threadIdx.y < n >> 1) ? 0 : n - 1 + blockDim.y * (nblock - 1);
 		tile[(threadIdx.y + aux2) * blockDim.x + threadIdx.x] = (0 <= aux && aux < height) ? img[(z * height + aux) * width + i] : 0;
-	} else if(threadIdx.y == (n >> 1) + 1 && threadIdx.x < (n >> 1) + 1) {
-		tile[blockDim.x * (blockDim.y * nblock + n - 1) + threadIdx.x] = filter2_d[threadIdx.x];
 	}
 	__syncthreads();
 	for(b = 0; b < nblock; b++) {
 		j = (blockIdx.y * nblock + b) * blockDim.y + threadIdx.y;
-		if(i < width && j < height) {
-			c = 0;
-			for(k = 0; k < n >> 1; k++) {
-				c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + k] * (tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x] + tile[(threadIdx.y + n - 1 - k + blockDim.y * b) * blockDim.x + threadIdx.x]);
+		c = 0;
+		for(k = 0; k < n >> 1; k++) {
+			if(threadIdx.x == 0 && threadIdx.y == 0) {
+				tile[blockDim.x * (blockDim.y * nblock + n - 1) + 1] = filter2_d[threadIdx.x];
 			}
-			c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
-			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+			__syncthreads();
+			c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + 1] * (tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x] + tile[(threadIdx.y + n - 1 - k + blockDim.y * b) * blockDim.x + threadIdx.x]);
 		}
+		if(threadIdx.x == 0 && threadIdx.y == 0) {
+			tile[blockDim.x * (blockDim.y * nblock + n - 1) + 1] = filter2_d[threadIdx.x];
+		}
+		__syncthreads();
+		c += tile[blockDim.x * (blockDim.y * nblock + n - 1) + k] * tile[(threadIdx.y + k + blockDim.y * b) * blockDim.x + threadIdx.x];
+		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
