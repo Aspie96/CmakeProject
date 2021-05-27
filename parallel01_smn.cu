@@ -61,17 +61,17 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 	z = blockIdx.z;
 	for(b = 0; b < NBLOCK; b++) {
 		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
-		tile[threadIdx.y * (16 + (n >> 2) + NBLOCK * blockDim.x) + 16 + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
+		tile[threadIdx.y * (8 + (n >> 2) + NBLOCK * blockDim.x) + 8 + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
 	}
 	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
 		/*int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCK * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCK - 1) * blockDim.x + threadIdx.x;
 		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCK : (n >> 1) - blockDim.x;*/
 		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCK * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
-		int aux2 = (threadIdx.x < n >> 1) ? 16 - (n >> 2) : 16 + (n >> 1) + blockDim.x * (NBLOCK - 1);
-		tile[threadIdx.y * (16 + (n >> 1) + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
+		int aux2 = (threadIdx.x < n >> 1) ? 8 - (n >> 2) : 8 + (n >> 1) + blockDim.x * (NBLOCK - 1);
+		tile[threadIdx.y * (8 + (n >> 1) + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
 	}
 	if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
-		tile[blockDim.y * (blockDim.x * NBLOCK + 16 + (n >> 1)) + threadIdx.x] = kernel[threadIdx.x];
+		tile[blockDim.y * (blockDim.x * NBLOCK + 8 + (n >> 1)) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
 	for(b = 0; b < NBLOCK; b++) {
@@ -79,9 +79,9 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		if(i < width && j < height) {
 			c = 0;
 			for(k = 0; k < n >> 1; k++) {
-				c += tile[blockDim.y * (blockDim.x * NBLOCK + 16 + (n >> 1)) + k] * (tile[threadIdx.y * (16 + (n >> 1) + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k + 16 - (n >> 1)] + tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + n - 1 - k + 16 - (n >> 1)]);
+				c += tile[blockDim.y * (blockDim.x * NBLOCK + 8 + (n >> 1)) + k] * (tile[threadIdx.y * (8 + (n >> 1) + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k + 8 - (n >> 1)] + tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + n - 1 - k + 8 - (n >> 1)]);
 			}
-			c += tile[blockDim.y * (blockDim.x * NBLOCK + 16 + (n >> 1)) + k] * tile[threadIdx.y * (16 + (n >> 1) + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k + 16 - (n >> 1)];
+			c += tile[blockDim.y * (blockDim.x * NBLOCK + 8 + (n >> 1)) + k] * tile[threadIdx.y * (8 + (n >> 1) + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k + 8 - (n >> 1)];
 			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
 	}
@@ -214,7 +214,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	for(int i = n_init; i < (n - 1); i += 14) {
 		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *((32) *(32 * NBLOCK + 15 - 1) + 8) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks3, threadsPerBlock2, sizeof(unsigned short) *((1) * (256 * NBLOCK + 16 + 15 / 2) + 8) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b << <blocks3, threadsPerBlock2, sizeof(unsigned short) *((1) * (256 * NBLOCK + 8 + 15 / 2) + 8) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
 	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, n_init, filter1_d, img_d);
