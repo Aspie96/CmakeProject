@@ -55,30 +55,35 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, b;
 	extern __shared__ unsigned short tile[];
-	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	tile[threadIdx.y * (n - 1 + blockDim.x) + (n >> 1) + threadIdx.x] = img[(z * height + j) * width + i];
+	for(b = 0; b < NBLOCK; b++) {
+		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
+		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + (n >> 1) + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
+	}
 	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
 		/*int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCK * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCK - 1) * blockDim.x + threadIdx.x;
 		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCK : (n >> 1) - blockDim.x;*/
-		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
-		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1;
-		tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
+		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCK * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
+		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCK - 1);
+		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
 	}
 	if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
-		tile[blockDim.y * (blockDim.x + n - 1) + threadIdx.x] = kernel[threadIdx.x];
+		tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
-	if(i < width && j < height) {
-		c = 0;
-		for(k = 0; k < n >> 1; k++) {
-			c += tile[blockDim.y * (blockDim.x + n - 1) + k] * (tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + k] + tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + n - 1 - k]);
+	for(b = 0; b < NBLOCK; b++) {
+		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
+		if(i < width && j < height) {
+			c = 0;
+			for(k = 0; k < n >> 1; k++) {
+				c += tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + k] * (tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k] + tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + n - 1 - k]);
+			}
+			c += tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + k] * tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k];
+			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 		}
-		c += tile[blockDim.y * (blockDim.x + n - 1) + k] * tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + k];
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -195,7 +200,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
-	dim3 blocks3((width + 255) / 256, height, 3);
+	dim3 blocks3((width + 255) / 256 / NBLOCK, height, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	dim3 threadsPerBlock2(256, 1, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
