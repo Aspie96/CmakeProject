@@ -203,7 +203,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
 	dim3 blocks3((width + 256) / 256 / NBLOCKH, height, 3);
 	dim3 threadsPerBlock(32, 32, 1);
-	dim3 threadsPerBlock2(256, 1, 1);
+	dim3 threadsPerBlock2(256, 4, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
@@ -215,7 +215,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	for(int i = n_init; i < (n - 1); i += 14) {
 		kernel2a << <blocks2, threadsPerBlock, sizeof(unsigned short) *((32) *(32 * NBLOCK + 15 - 1) + 8) >> > (aux1_d, width, height, 15, filter2_d, NBLOCK, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks3, threadsPerBlock2, sizeof(unsigned short) *((32) * (32 * NBLOCK + 15 - 1) + 8) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
+		kernel1b << <blocks3, threadsPerBlock2, sizeof(unsigned short) *((4) * (256 * NBLOCKH + 15 - 1) + 8) >> > (aux2_d, width, height, 15, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
 	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, n_init, filter1_d, img_d);
