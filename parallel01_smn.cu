@@ -22,7 +22,8 @@
 #define SAVED (N - 1)
 #endif
 #define NBLOCK 8
-#define NBLOCKH 1
+#define NBLOCKH 2
+#define NBLOCKH 2
 
 void pascal(int *p, int n) {
 	n--;
@@ -201,7 +202,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
-	dim3 blocks3((width + 1024) / 1024, height, 3);
+	dim3 blocks3((width + 1024) / 1024 / NBLOCKH, height, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	dim3 threadsPerBlock2(1024, 1, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
