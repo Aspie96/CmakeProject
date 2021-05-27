@@ -55,35 +55,30 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c, b;
+	int i, j, z, k, l, c;
 	extern __shared__ unsigned short tile[];
+	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
-	for(b = 0; b < NBLOCK; b++) {
-		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
-		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + (n >> 1) + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
-	}
+	tile[threadIdx.y * (n - 1 + blockDim.x) + (n >> 1) + threadIdx.x + blockDim.x] = img[(z * height + j) * width + i];
 	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
 		/*int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCK * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCK - 1) * blockDim.x + threadIdx.x;
 		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCK : (n >> 1) - blockDim.x;*/
-		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCK * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
-		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCK - 1);
-		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
+		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
+		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1;
+		tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
 	}
 	if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
-		tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + threadIdx.x] = kernel[threadIdx.x];
+		tile[blockDim.y * (blockDim.x + n - 1) + threadIdx.x] = kernel[threadIdx.x];
 	}
 	__syncthreads();
-	for(b = 0; b < NBLOCK; b++) {
-		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
-		if(i < width && j < height) {
-			c = 0;
-			for(k = 0; k < n >> 1; k++) {
-				c += tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + k] * (tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k] + tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + n - 1 - k]);
-			}
-			c += tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + k] * tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + b * blockDim.x + threadIdx.x + k];
-			result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+	if(i < width && j < height) {
+		c = 0;
+		for(k = 0; k < n >> 1; k++) {
+			c += tile[blockDim.y * (blockDim.x + n - 1) + k] * (tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + k] + tile[threadIdx.y * (n - 1 + blockDim.x) + threadIdx.x + n - 1 - k]);
 		}
+		c += tile[blockDim.y * (blockDim.x + n - 1) + k] * tile[threadIdx.y * (n - 1) + threadIdx.x + k];
+		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
