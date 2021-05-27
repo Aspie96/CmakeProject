@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 10
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -227,7 +227,7 @@ double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned sho
 int main(void) {
 	printf("Parallel version - no constant memory - yes shared memory\n");
 	int nk = N;
-	const char fname[] = "../../../img2.png";
+	const char fname[] = "./CmakeProject/img2.png";
 	int width, height, chn;
 	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
 	stbi_uc *img_d;
@@ -250,7 +250,7 @@ int main(void) {
 		printf("Blurring with kernel size %d...", ks);
 		double time = test_blur_time(ks, width, height, img_d, aux1_d, aux2_d);
 		printf(" Blurred in %f seconds!\n", time);
-		{
+		if(i == SAVED) {
 			checkCudaErrors(cudaMemcpy(img, img_d, sizeof(stbi_uc) * width * height * 3, cudaMemcpyDeviceToHost));
 			//cudaError_t b = cudaGetLastError();
 			const char fname2[] = "image2.bmp";
