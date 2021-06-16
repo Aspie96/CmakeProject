@@ -49,31 +49,44 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 }
 
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, k, z, c, l;
+	int i, j, k, z, c, l, m;
 	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n / 2; k++) {
 			l = i + k - n / 2;
+			m = 0;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(z * height + j) * width + l];
+				m += img[(z * height + j) * width + l];
 			}
+			l = i + (n - k - 1) - n / 2;
+			if(0 <= l && l < width) {
+				m += img[(z * height + j) * width + l];
+			}
+			c += kernel[k] * m;
 		}
+		c += kernel[k] * img[(z * height + j) * width + l];
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n / 2; k++) {
+			l = j + k - n / 2;
+			m = 0;
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * width + i];
+			}
 			l = j + k - n / 2;
 			if(0 <= l && l < height) {
-				c += kernel[k] * img[(z * height + l) * width + i];
+				m += img[(z * height + l) * width + i];
 			}
+			c += kernel[k] * m;
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
@@ -173,7 +186,7 @@ int main(void) {
 		printf("Blurring with kernel size %d...", ns[i]);
 		double time = test_blur_time(ns[i], width, height, img_c, aux1, aux2);
 		printf(" Blurred in %f seconds!\n", time);
-		if(i == SAVED) {
+		{
 			memcpy(img, img_c, sizeof(stbi_uc) * width * height * 3);
 			const char fname2[] = "image2.bmp";
 			stbi_write_bmp(fname2, width, height, 3, img);
