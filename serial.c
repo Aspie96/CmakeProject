@@ -50,9 +50,9 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
 	int i, j, k, z, c, l;
-	for(i = 0; i < width; i++)
+	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
-	for(z = 0; z < 3; z++) {
+	for(i = 0; i < width; i++) {
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
@@ -65,9 +65,9 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 }
 void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
 	int i, j, z, k, l, c;
-	for(i = 0; i < width; i++)
+	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
-	for(z = 0; z < 3; z++) {
+	for(i = 0; i < width; i++) {
 		c = 0;
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
