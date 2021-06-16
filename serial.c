@@ -14,7 +14,7 @@
 #define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH (4 * 4096)
+#define WIDTH 0
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
