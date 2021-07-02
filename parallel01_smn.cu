@@ -201,7 +201,7 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	int nBlockSize1 = NBLOCK;
 	if(width < 32 * NBLOCK) {
-		nBlockSize = width / 32;
+		nBlockSize1 = width / 32;
 	}
 	int nBlockSize3 = 256;
 	if(width < 256) {
