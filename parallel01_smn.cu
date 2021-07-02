@@ -199,10 +199,22 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	pascal(filter1, n_init);
 	pascal(filter2, 15);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / NBLOCK, 3);
-	dim3 blocks3((width + 256) / 256 / NBLOCK, height, 3);
+	int nBlockSize1 = NBLOCK;
+	if(width < 32 * NBLOCK) {
+		nBlockSize = width / 32;
+	}
+	int nBlockSize3 = 256;
+	if(width < 256) {
+		nBlockSize3 = width;
+	}
+	int nBlockSize2 = NBLOCK;
+	if(width < nBlockSize3 * NBLOCK) {
+		nBlockSize2 = width / nBlockSize3;
+	}
+	dim3 blocks2((width + 31) / 32, (height + 31) / 32 / nBlockSize1, 3);
+	dim3 blocks3((width + nBlockSize3) / nBlockSize3 / nBlockSize2, height, 3);
 	dim3 threadsPerBlock(32, 32, 1);
-	dim3 threadsPerBlock2(256, 1, 1);
+	dim3 threadsPerBlock2(nBlockSize3, 1, 1);
 	cudaMalloc(&filter1_d, sizeof(int) * n_init);
 	cudaMalloc(&filter2_d, sizeof(int) * 15);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * n_init, cudaMemcpyHostToDevice);
