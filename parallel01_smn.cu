@@ -55,7 +55,7 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
-	int i, j, z, k, l, c, b;
+	int i, j, z, k, l, c, b, m, f;
 	extern __shared__ unsigned short tile[];
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -63,16 +63,24 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
 		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + (n >> 1) + threadIdx.x + blockDim.x * b] = img[(z * height + j) * width + i];
 	}
-	if(!((n >> 1) <= threadIdx.x && threadIdx.x < blockDim.x - (n >> 1))) {
+	if(threadIdx.x < n - 1) {
 		/*int aux = (threadIdx.x < n >> 1) ? (blockIdx.x + 1) * NBLOCK * blockDim.x + threadIdx.x : (blockIdx.x * NBLOCK - 1) * blockDim.x + threadIdx.x;
 		int aux2 = (threadIdx.x < n >> 1) ? (n >> 1) + blockDim.x * NBLOCK : (n >> 1) - blockDim.x;*/
-		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCK * blockDim.x + threadIdx.x - (n >> 1) : i + (n >> 1);
-		int aux2 = (threadIdx.x < n >> 1) ? 0 : n - 1 + blockDim.x * (NBLOCK - 1);
+		int aux = (threadIdx.x < n >> 1) ? blockIdx.x * NBLOCK * blockDim.x + threadIdx.x - (n >> 1) : (threadIdx.x - (n >> 1)) + blockDim.x * NBLOCK * (blockIdx.x + 1);
+		int aux2 = (threadIdx.x < n >> 1) ? 0 : blockDim.x * NBLOCK;
 		tile[threadIdx.y * (n - 1 + NBLOCK * blockDim.x) + threadIdx.x + aux2] = (0 <= aux && aux < width) ? img[(z * height + j) * width + aux] : 0;
 	}
-	if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
-		tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + threadIdx.x] = kernel[threadIdx.x];
+	if(blockDim.x <= 32) {
+		f = threadIdx.x;
+	} else {
+		f = threadIdx.x - 32;
 	}
+	if(threadIdx.y == 0 && f >= 0 && f < (n >> 1) + 1) {
+		tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + f] = kernel[f];
+	}
+	/*if(threadIdx.y == 0 && threadIdx.x < (n >> 1) + 1) {
+		tile[blockDim.y * (blockDim.x * NBLOCK + n - 1) + threadIdx.x] = kernel[threadIdx.x];
+	}*/
 	__syncthreads();
 	for(b = 0; b < NBLOCK; b++) {
 		i = (blockIdx.x * NBLOCK + b) * blockDim.x + threadIdx.x;
