@@ -19,20 +19,20 @@
 #ifndef HEIGHT
 #define HEIGHT WIDTH
 #endif
-#ifndef SAVED
-#define SAVED (N - 1)
+#ifndef SAVE_OUTPUT
+#define SAVE_OUTPUT 0
 #endif
 
-void pascal(int *p, int n) {
+void pascal(int *restrict p, int n) {
 	int k;
 	n--;
 	p[0] = 1;
-	for(k = 0; k < n; k++) {
+	for(k = 0; k < (n >> 1); k++) {
 		p[k + 1] = p[k] * (n - k) / (k + 1);
 	}
 }
 
-void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c;
 	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
@@ -41,14 +41,14 @@ void kernel1a(const stbi_uc *img, int width, int height, int n, int *kernel, uns
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += kernel[k] * img[(j * width + l) * 3 + z];
+				c += filter[k] * img[(j * width + l) * 3 + z];
 			}
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
-void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel1b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, k, z, c, l, m;
 	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
@@ -64,13 +64,13 @@ void kernel1b(unsigned short *img, int width, int height, int n, int *kernel, un
 			if(0 <= l && l < width) {
 				m += img[(z * height + j) * width + l];
 			}
-			c += kernel[k] * m;
+			c += filter[k] * m;
 		}
-		c += kernel[k] * img[(z * height + j) * width + l];
+		c += filter[k] * img[(z * height + j) * width + l];
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
-void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, unsigned short *result) {
+void kernel2a(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
@@ -86,13 +86,13 @@ void kernel2a(unsigned short *img, int width, int height, int n, int *kernel, un
 			if(0 <= l && l < height) {
 				m += img[(z * height + l) * width + i];
 			}
-			c += kernel[k] * m;
+			c += filter[k] * m;
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
-void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, stbi_uc *result) {
+void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, c;
 	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
@@ -101,94 +101,116 @@ void kernel2b(unsigned short *img, int width, int height, int n, int *kernel, st
 		for(k = 0; k < n; k++) {
 			l = j + k - n / 2;
 			if(0 <= l && l < height) {
-				c += kernel[k] * img[(z * height + l) * width + i];
+				c += filter[k] * img[(z * height + l) * width + i];
 			}
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE1(c, n + 7);
 	}
 }
 
-int blur(int n, int width, int height, stbi_uc *img, unsigned short *aux1, unsigned short *aux2) {
-	int *kernel1;
-	int *kernel2;
-	int n_init;
-	int i;
-	clock_t begin = clock();
-	if(n <= 15 || (n - 1) % 14 == 0) {
+int blur(clock_t begin, int n, int width, int height, stbi_uc *restrict img) {
+	int *kernel1, *kernel2, n_init, i;
+	unsigned short *restrict aux1, *restrict aux2;
+
+	if(n <= 17 || (n - 1) % 16 == 0) {
 		n_init = n;
 	} else {
-		n_init = ((n - 1) % 14) + 1;
+		n_init = ((n - 1) % 16) + 1;
 	}
-	kernel1 = (int*)malloc(sizeof(int) * n_init);
-	kernel2 = (int*)malloc(sizeof(int) * 15);
+	kernel1 = (int*)malloc(sizeof(int) * ((n_init >> 1) + 1));
+	kernel2 = (int*)malloc(sizeof(int) * 9);
+	aux1 = (unsigned short *)malloc(sizeof(unsigned short) * width * height * 3);
+	aux2 = (unsigned short *)malloc(sizeof(unsigned short) * width * height * 3);
 	pascal(kernel1, n_init);
-	pascal(kernel2, 15);
+	pascal(kernel2, 17);
 	kernel1a(img, width, height, n_init, kernel1, aux1);
 	if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+		free(kernel1);
+		free(kernel2);
+		free(aux1);
+		free(aux2);
 		return 1;
 	}
-	for(i = n_init; i < (n - 1); i += 14) {
-		kernel2a(aux1, width, height, 15, kernel2, aux2);
+	for(i = n_init; i < (n - 1); i += 16) {
+		kernel2a(aux1, width, height, 17, kernel2, aux2);
 		if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+			free(kernel1);
+			free(kernel2);
+			free(aux1);
+			free(aux2);
 			return 1;
 		}
-		kernel1b(aux2, width, height, 15, kernel2, aux1);
+		kernel1b(aux2, width, height, 17, kernel2, aux1);
 		if((clock() - begin) / CLOCKS_PER_SEC > 100) {
+			free(kernel1);
+			free(kernel2);
+			free(aux1);
+			free(aux2);
 			return 1;
 		}
 	}
 	kernel2b(aux1, width, height, n_init, kernel1, img);
+	free(kernel1);
+	free(kernel2);
+	free(aux1);
+	free(aux2);
 	if((clock() - begin) / CLOCKS_PER_SEC > 100) {
 		return 1;
 	}
-	free(kernel1);
-	free(kernel2);
 	return 0;
 }
 
-double test_blur_time(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
-	clock_t begin = clock();
-	if(blur(n, width, height, img_d, aux1_d, aux2_d)) {
+double test_blur_time(int n, int width, int height, stbi_uc *restrict img_d) {
+	clock_t begin, end;
+	
+	begin = clock();
+	if(blur(begin, n, width, height, img_d)) {
+		end = clock();
 		printf("Program failed");
+		return -(double)(end - begin) / CLOCKS_PER_SEC;
 	} else {
+		end = clock();
 		printf("Success");
+		return (double)(end - begin) / CLOCKS_PER_SEC;
 	}
-	clock_t end = clock();
-	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
 int main(void) {
+	int nk, *restrict ns, i, width, height, chn, f;
+	stbi_uc *restrict img, *restrict img_c, *restrict img_r;
+	double time;
+	const char fname[] = "./CmakeProject/img2.png";
+	const char fname2[] = "image2.bmp";
+
 	printf("Serial version\n");
-	int nk = N;
-	int *ns = (int*)malloc(sizeof(int) * nk);
-	int i;
+	nk = N;
+	ns = (int*)malloc(sizeof(int) * nk);
 	for(i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
-	const char fname[] = "./CmakeProject/img2.png";
-	int width, height, chn;
-	stbi_uc *img = stbi_load(fname, &width, &height, &chn, 3);
-	stbi_uc *img_c;
+	img = stbi_load(fname, &width, &height, &chn, 3);
 	if(WIDTH != 0) {
-		stbi_uc *img_r = (stbi_uc *)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
+		img_r = (stbi_uc*)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
 		stbir_resize_uint8(img, width, height, 0, img_r, WIDTH, HEIGHT, 0, 3);
+		free(img);
 		width = WIDTH;
 		height = HEIGHT;
 		img = img_r;
 	}
 	img_c = (stbi_uc*)malloc(sizeof(stbi_uc) * width * height * 3);
-	unsigned short *aux1, *aux2;
-	aux1 = (unsigned short*)malloc(sizeof(unsigned short) * width * height * 3);
-	aux2 = (unsigned short*)malloc(sizeof(unsigned short) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
-	for(i = 0; i < nk; i++) {
+	f = 0;
+	for(i = 0; i < nk && !f; i++) {
 		memcpy(img_c, img, sizeof(stbi_uc) * width * height * 3);
 		printf("Blurring with kernel size %d...", ns[i]);
-		double time = test_blur_time(ns[i], width, height, img_c, aux1, aux2);
+		time = test_blur_time(ns[i], width, height, img_c);
+		if(time < 0) {
+			time = -time;
+			f = 1;
+		}
 		printf(" Blurred in %f seconds!\n", time);
-		{
+		if(SAVE_OUTPUT) {
 			memcpy(img, img_c, sizeof(stbi_uc) * width * height * 3);
-			const char fname2[] = "image2.bmp";
 			stbi_write_bmp(fname2, width, height, 3, img);
 		}
 	}
