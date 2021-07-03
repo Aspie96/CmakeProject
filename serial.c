@@ -22,7 +22,11 @@
 #ifndef SAVE_OUTPUT
 #define SAVE_OUTPUT 0
 #endif
+#ifdef __cplusplus
+#ifndef _MSC_VER
 #define restrict __restrict__
+#endif
+#endif
 
 void pascal(int *restrict p, int n) {
 	int k;
