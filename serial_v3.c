@@ -20,7 +20,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 #ifndef _MSC_VER
@@ -134,7 +134,7 @@ void kernel2b(const unsigned short *restrict img, int width, int height, int n, 
 			}
 			c += filter[k] * m;
 		}
-		l = j + k - (n >> 1);
+		l = j + (n - k - 1) - (n >> 1);
 		if(0 <= l && l < height) {
 			c += filter[k] * img[(z * height + l) * width + i];
 		}

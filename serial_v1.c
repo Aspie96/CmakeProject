@@ -11,7 +11,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 5
+#define N 13
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -20,7 +20,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 #ifndef _MSC_VER
@@ -134,7 +134,7 @@ void kernel2b(const unsigned short *restrict img, int width, int height, int n, 
 			}
 			c += filter[k] * m;
 		}
-		l = j + k - (n >> 1);
+		l = j + (n - k - 1) - (n >> 1);
 		if(0 <= l && l < height) {
 			c += filter[k] * img[(z * height + l) * width + i];
 		}
@@ -215,7 +215,7 @@ int main(void) {
 	const char fname[] = IMGPATH;
 	const char fname2[] = "image2.bmp";
 
-	printf("%d\n", N);
+	printf("Serial version\n");
 	nk = N;
 	ns = (int*)malloc(sizeof(int) * nk);
 	for(i = 0; i < nk; i++) {
