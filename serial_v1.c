@@ -216,8 +216,8 @@ int main(void) {
 	const char fname2[] = "image2.bmp";
 
 	printf("%d\n", N);
-	print("%d\n", WIDTH);
-	print("%s\n", fname);
+	printf("%d\n", WIDTH);
+	printf("%s\n", fname);
 
 	return 0;
 }
