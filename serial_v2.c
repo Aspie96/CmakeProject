@@ -20,12 +20,15 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 0
+#define SAVE_OUTPUT 1
 #endif
 #ifdef __cplusplus
 #ifndef _MSC_VER
 #define restrict __restrict__
 #endif
+#endif
+#ifndef IMGPATH
+#define IMGPATH "../../../img2.png"
 #endif
 
 void pascal(int *restrict p, int n) {
@@ -38,16 +41,26 @@ void pascal(int *restrict p, int n) {
 }
 
 void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
-	int i, j, z, k, l, c;
-	for(i = 0; i < width; i++)
+	int i, j, z, k, l, c, m;
 	for(j = 0; j < height; j++)
-	for(z = 0; z < 3; z++) {
+	for(z = 0; z < 3; z++)
+	for(i = 0; i < width; i++) {
 		c = 0;
-		for(k = 0; k < n; k++) {
-			l = i + k - n / 2;
+		for(k = 0; k < n >> 1; k++) {
+			l = i + k - (n >> 1);
+			m = 0;
 			if(0 <= l && l < width) {
-				c += filter[k] * img[(j * width + l) * 3 + z];
+				m += img[(j * width + l) * 3 + z];
 			}
+			l = i + (n - k - 1) - (n >> 1);
+			if(0 <= l && l < width) {
+				m += img[(j * width + l) * 3 + z];
+			}
+			c += filter[k] * m;
+		}
+		l = i + k - (n >> 1);
+		if(0 <= l && l < width) {
+			c += filter[k] * img[(j * width + l) * 3 + z];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
 	}
@@ -59,19 +72,21 @@ void kernel1b(const unsigned short *restrict img, int width, int height, int n, 
 	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++) {
 		c = 0;
-		for(k = 0; k < n / 2; k++) {
-			l = i + k - n / 2;
+		for(k = 0; k < (n >> 1); k++) {
+			l = i + k - (n >> 1);
 			m = 0;
 			if(0 <= l && l < width) {
 				m += img[(z * height + j) * width + l];
 			}
-			l = i + (n - k - 1) - n / 2;
+			l = i + (n - k - 1) - (n >> 1);
 			if(0 <= l && l < width) {
 				m += img[(z * height + j) * width + l];
 			}
 			c += filter[k] * m;
 		}
-		c += filter[k] * img[(z * height + j) * width + l];
+		if(0 <= l && l < width) {
+			c += filter[k] * img[(z * height + j) * width + l];
+		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
@@ -81,46 +96,59 @@ void kernel2a(const unsigned short *restrict img, int width, int height, int n, 
 	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++) {
 		c = 0;
-		for(k = 0; k < n / 2; k++) {
-			l = j + k - n / 2;
+		for(k = 0; k < (n >> 1); k++) {
+			l = j + k - (n >> 1);
 			m = 0;
 			if(0 <= l && l < height) {
 				m += img[(z * height + l) * width + i];
 			}
-			l = j + k - n / 2;
+			l = j + (n - k - 1) - (n >> 1);
 			if(0 <= l && l < height) {
 				m += img[(z * height + l) * width + i];
 			}
 			c += filter[k] * m;
+		}
+		l = j + k - (n >> 1);
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * width + i];
 		}
 		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
 void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, stbi_uc *restrict result) {
-	int i, j, z, k, l, c;
+	int i, j, z, k, l, c, m;
 	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++) {
 		c = 0;
-		for(k = 0; k < n; k++) {
-			l = j + k - n / 2;
+		for(k = 0; k < (n >> 1); k++) {
+			l = j + k - (n >> 1);
+			m = 0;
 			if(0 <= l && l < height) {
-				c += filter[k] * img[(z * height + l) * width + i];
+				m += img[(z * height + l) * width + i];
 			}
+			l = j + k - (n >> 1);
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * width + i];
+			}
+			c += filter[k] * m;
+		}
+		l = j + k - (n >> 1);
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * width + i];
 		}
 		result[(j * width + i) * 3 + z] = APPROX_DIVIDE1(c, n + 7);
 	}
 }
 
 int blur(clock_t begin, int n, int width, int height, stbi_uc *restrict img) {
-	int *kernel1, *kernel2, n_init, i;
+	int *restrict kernel1, *restrict kernel2, n_init, i;
 	unsigned short *restrict aux1, *restrict aux2;
 
-	if(n <= 17 || (n - 1) % 16 == 0) {
-		n_init = n;
-	} else {
-		n_init = ((n - 1) % 16) + 1;
+	n_init = ((n - 1) % 16) + 1;
+	if(n_init == 1) {
+		n_init = 17;
 	}
 	kernel1 = (int*)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	kernel2 = (int*)malloc(sizeof(int) * 9);
@@ -184,7 +212,7 @@ int main(void) {
 	int nk, *restrict ns, i, width, height, chn, f;
 	stbi_uc *restrict img, *restrict img_c, *restrict img_r;
 	double time;
-	const char fname[] = "./CmakeProject/img2.png";
+	const char fname[] = IMGPATH;
 	const char fname2[] = "image2.bmp";
 
 	printf("Serial version\n");
