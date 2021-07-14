@@ -32,6 +32,7 @@ ADD_EXECUTABLE ("serial_v4" "serial_v4.c" )
 
 add_compile_definitions(N=${N})
 add_compile_definitions(WIDTH=${WIDTH})
+add_compile_definitions(IGPATH="\"${IMGPATH}\"")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
