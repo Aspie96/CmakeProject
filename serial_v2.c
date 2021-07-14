@@ -11,7 +11,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 5
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -42,8 +42,8 @@ void pascal(int *restrict p, int n) {
 
 void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++)
+	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
