@@ -216,8 +216,37 @@ int main(void) {
 	const char fname2[] = "image2.bmp";
 
 	printf("%d\n", N);
-	printf("%d\n", WIDTH);
-	printf("%s\n", fname);
-
+	nk = N;
+	ns = (int*)malloc(sizeof(int) * nk);
+	for(i = 0; i < nk; i++) {
+		ns[i] = (1 << (i + 1)) + 1;
+	}
+	img = stbi_load(fname, &width, &height, &chn, 3);
+	if(WIDTH != 0) {
+		img_r = (stbi_uc*)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
+		stbir_resize_uint8(img, width, height, 0, img_r, WIDTH, HEIGHT, 0, 3);
+		free(img);
+		width = WIDTH;
+		height = HEIGHT;
+		img = img_r;
+	}
+	img_c = (stbi_uc*)malloc(sizeof(stbi_uc) * width * height * 3);
+	printf("Size of image: %dx%d\n", width, height);
+	f = 0;
+	for(i = 0; i < nk && !f; i++) {
+		memcpy(img_c, img, sizeof(stbi_uc) * width * height * 3);
+		printf("Blurring with kernel size %d...", ns[i]);
+		time = test_blur_time(ns[i], width, height, img_c);
+		if(time < 0) {
+			time = -time;
+			f = 1;
+		}
+		printf(" Blurred in %f seconds!\n", time);
+		if(SAVE_OUTPUT) {
+			memcpy(img, img_c, sizeof(stbi_uc) * width * height * 3);
+			stbi_write_bmp(fname2, width, height, 3, img);
+		}
+	}
+	printf("\n");
 	return 0;
 }
