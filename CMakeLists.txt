@@ -29,6 +29,10 @@ ADD_EXECUTABLE ("serial_v1" "serial_v1.c" )
 ADD_EXECUTABLE ("serial_v2" "serial_v2.c" )
 ADD_EXECUTABLE ("serial_v3" "serial_v3.c" )
 ADD_EXECUTABLE ("serial_v4" "serial_v4.c" )
+
+add_compile_definitions(N=${N})
+add_compile_definitions(WIDTH=${WIDTH})
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 	set(CMAKE_C_FLAGS_RELEASE "-O2")
