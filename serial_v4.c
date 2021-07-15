@@ -42,9 +42,9 @@ void pascal(int *restrict p, int n) {
 
 void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(i = 0; i < width; i++)
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
 			l = i + k - (n >> 1);
@@ -68,9 +68,9 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const i
 
 void kernel1b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, k, z, c, l, m;
-	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(i = 0; i < width; i++)
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = i + k - (n >> 1);
@@ -92,9 +92,9 @@ void kernel1b(const unsigned short *restrict img, int width, int height, int n, 
 }
 void kernel2a(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(z = 0; z < 3; z++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(i = 0; i < width; i++)
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = j + k - (n >> 1);
@@ -118,9 +118,9 @@ void kernel2a(const unsigned short *restrict img, int width, int height, int n, 
 
 void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, c, m;
+	for(j = 0; j < height; j++)
 	for(i = 0; i < width; i++)
-	for(z = 0; z < 3; z++)
-	for(j = 0; j < height; j++) {
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = j + k - (n >> 1);
@@ -150,8 +150,8 @@ int blur(clock_t begin, int n, int width, int height, stbi_uc *restrict img) {
 	if(n_init == 1) {
 		n_init = 17;
 	}
-	kernel1 = (int*)malloc(sizeof(int) * ((n_init >> 1) + 1));
-	kernel2 = (int*)malloc(sizeof(int) * 9);
+	kernel1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
+	kernel2 = (int *)malloc(sizeof(int) * 9);
 	aux1 = (unsigned short *)malloc(sizeof(unsigned short) * width * height * 3);
 	aux2 = (unsigned short *)malloc(sizeof(unsigned short) * width * height * 3);
 	pascal(kernel1, n_init);
@@ -195,7 +195,7 @@ int blur(clock_t begin, int n, int width, int height, stbi_uc *restrict img) {
 
 double test_blur_time(int n, int width, int height, stbi_uc *restrict img_d) {
 	clock_t begin, end;
-	
+
 	begin = clock();
 	if(blur(begin, n, width, height, img_d)) {
 		end = clock();
@@ -217,20 +217,20 @@ int main(void) {
 
 	printf("Serial version\n");
 	nk = N;
-	ns = (int*)malloc(sizeof(int) * nk);
+	ns = (int *)malloc(sizeof(int) * nk);
 	for(i = 0; i < nk; i++) {
 		ns[i] = (1 << (i + 1)) + 1;
 	}
 	img = stbi_load(fname, &width, &height, &chn, 3);
 	if(WIDTH != 0) {
-		img_r = (stbi_uc*)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
+		img_r = (stbi_uc *)malloc(sizeof(stbi_uc) * WIDTH * HEIGHT * 3);
 		stbir_resize_uint8(img, width, height, 0, img_r, WIDTH, HEIGHT, 0, 3);
 		free(img);
 		width = WIDTH;
 		height = HEIGHT;
 		img = img_r;
 	}
-	img_c = (stbi_uc*)malloc(sizeof(stbi_uc) * width * height * 3);
+	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
 	f = 0;
 	for(i = 0; i < nk && !f; i++) {
