@@ -42,9 +42,9 @@ void pascal(int *restrict p, int n) {
 
 void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(z = 0; z < 3; z++)
+	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
 			l = i + k - (n >> 1);
@@ -68,9 +68,9 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const i
 
 void kernel1b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, k, z, c, l, m;
-	for(z = 0; z < 3; z++)
+	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = i + k - (n >> 1);
@@ -92,9 +92,9 @@ void kernel1b(const unsigned short *restrict img, int width, int height, int n, 
 }
 void kernel2a(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(z = 0; z < 3; z++)
+	for(i = 0; i < width; i++)
 	for(j = 0; j < height; j++)
-	for(i = 0; i < width; i++) {
+	for(z = 0; z < 3; z++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = j + k - (n >> 1);
@@ -118,9 +118,9 @@ void kernel2a(const unsigned short *restrict img, int width, int height, int n, 
 
 void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(j = 0; j < height; j++)
+	for(i = 0; i < width; i++)
 	for(z = 0; z < 3; z++)
-	for(i = 0; i < width; i++) {
+	for(j = 0; j < height; j++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = j + k - (n >> 1);
