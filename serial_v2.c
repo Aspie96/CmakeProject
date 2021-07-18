@@ -20,7 +20,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 0
+#define SAVE_OUTPUT 1
 #endif
 #ifdef __cplusplus
 #ifndef _MSC_VER
