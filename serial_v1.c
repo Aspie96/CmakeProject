@@ -118,9 +118,9 @@ void kernel2a(const unsigned short *restrict img, int width, int height, int n, 
 
 void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, c, m;
-	for(j = 0; j < height; i++)
+	for(j = 0; j < height; j++)
 	for(z = 0; z < 3; z++)
-	for(i = 0; i < width; j++) {
+	for(i = 0; i < width; i++) {
 		c = 0;
 		for(k = 0; k < (n >> 1); k++) {
 			l = j + k - (n >> 1);
