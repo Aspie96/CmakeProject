@@ -10,16 +10,16 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 10
+#define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH 4097
+#define WIDTH 0
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
