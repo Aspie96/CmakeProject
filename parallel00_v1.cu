@@ -23,7 +23,7 @@
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
-#define restrict __restrict__
+#define restrict
 //#endif
 #endif
 #ifndef IMGPATH
@@ -165,11 +165,11 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
-	//cudaMallocPitch(&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
+	cudaMallocPitch(&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
 	aux1_pitch /= sizeof(unsigned short);
-	//cudaMallocPitch(&aux2_d, &aux2_pitch, sizeof(unsigned short) * width * 3, height);
+	cudaMallocPitch(&aux2_d, &aux2_pitch, sizeof(unsigned short) * width * 3, height);
 	aux2_pitch /= sizeof(unsigned short);
-	//cudaMallocPitch(&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
+	cudaMallocPitch(&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
 	pascal(filter1, n_init);
 	pascal(filter2, 17);
 	cudaMalloc(&filter1_d, sizeof(int) * ((n_init >> 1) + 1));
