@@ -172,15 +172,15 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
-	cudaMallocPitch(&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
+	cudaMallocPitch((void **)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
 	aux1_pitch /= sizeof(unsigned short);
-	cudaMallocPitch(&aux2_d, &aux2_pitch, sizeof(unsigned short) * width * 3, height);
+	cudaMallocPitch((void **)&aux2_d, &aux2_pitch, sizeof(unsigned short) * width * 3, height);
 	aux2_pitch /= sizeof(unsigned short);
-	cudaMallocPitch(&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
+	cudaMallocPitch((void **)&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
 	pascal(filter1, n_init);
 	pascal(filter2, 17);
-	cudaMalloc(&filter1_d, sizeof(int) * ((n_init >> 1) + 1));
-	cudaMalloc(&filter2_d, sizeof(int) * 9);
+	cudaMalloc((void **)&filter1_d, sizeof(int) * ((n_init >> 1) + 1));
+	cudaMalloc((void **)&filter2_d, sizeof(int) * 9);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * ((n_init >> 1) + 1), cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
