@@ -10,21 +10,21 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 10
 #endif
 #ifndef WIDTH
-#define WIDTH 0
+#define WIDTH 4097
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 0
+#define SAVE_OUTPUT 1
 #endif
 #ifdef __cplusplus
-#ifndef _MSC_VER
+//#ifndef _MSC_VER
 #define restrict __restrict__
-#endif
+//#endif
 #endif
 #ifndef IMGPATH
 #define IMGPATH "../../../img2.png"
@@ -39,35 +39,35 @@ void pascal(int *p, int n) {
 }
 
 __global__
-void kernel1a(const stbi_uc *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict filter) {
-	int i, j, z, k, l, c;
+void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
+	int i, j, z, k, l, m, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
 			m = 0;
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				m = img[(j * width + l) * 3 + z];
+				m = img[(j * img_pitch + l * 3) + z];
 			}
 			l = i + n - 1 - k - n / 2;
 			if(0 <= l && l < width) {
-				m += img[(j * width + l) * 3 + z];
+				m += img[(j * img_pitch + l * 3) + z];
 			}
 			c += filter[k] * m;
 		}
 		l = i + k - n / 2;
 		if(0 <= l && l < width) {
-			c += filter[k] * img[(j * width + l) * 3 + z];
+			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE1(c, n - 9);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
 __global__
-void kernel1b(const unsigned short *restrict img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
+void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -78,24 +78,24 @@ void kernel1b(const unsigned short *restrict img, int width, int height, int n, 
 			l = i + k - n / 2;
 			m = 0;
 			if(0 <= l && l < width) {
-				m = img[(z * height + j) * width + l];
+				m = img[(z * height + j) * img_pitch + l];
 			}
 			l = i + n - 1 - k - n / 2;
 			if(0 <= l && l < width) {
-				m += img[(z * height + j) * width + l];
+				m += img[(z * height + j) * img_pitch + l];
 			}
 			c += filter[k] * m;
 		}
 		l = i + k - n / 2;
 		if(0 <= l && l < width) {
-			c += filter[k] * img[(z * height + j) * width + l];
+			c += filter[k] * img[(z * height + j) * img_pitch + l];
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
 __global__
-void kernel2a(const unsigned short *img, int width, int height, int n, const int *restrict filter, unsigned short *restrict result) {
+void kernel2a(const unsigned short *img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -106,25 +106,25 @@ void kernel2a(const unsigned short *img, int width, int height, int n, const int
 			l = j + k - n / 2;
 			m = 0;
 			if(0 <= l && l < height) {
-				m = img[(z * height + l) * width + i];
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
 			if(0 <= l && l < height) {
-				m += img[(z * height + l) * width + i];
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
 		if(0 <= l && l < height) {
-			c += filter[k] * img[(z * height + l) * width + i];
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
-		result[(z * height + j) * width + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
 __global__
-void kernel2b(const unsigned short *restrict img, int width, int height, int n, const int *restrict kernel, stbi_uc *restrict result) {
-	int i, j, z, k, l, c;
+void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, stbi_uc *restrict result) {
+	int i, j, z, k, l, m, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
 	z = blockIdx.z;
@@ -134,26 +134,29 @@ void kernel2b(const unsigned short *restrict img, int width, int height, int n, 
 			l = j + k - n / 2;
 			m = 0;
 			if(0 <= l && l < height) {
-				m = img[(z * height + l) * width + i];
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
 			if(0 <= l && l < height) {
-				m += img[(z * height + l) * width + i];
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
 		if(0 <= l && l < height) {
-			c += filter[k] * img[(z * height + l) * width + i];
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
-		result[(j * width + i) * 3 + z] = APPROX_DIVIDE2(c, n + 7);
+		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n + 7);
 	}
 }
 
-void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, unsigned short *aux2_d) {
+void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
+	unsigned short *restrict aux1_d, *restrict aux2_d;
+	stbi_uc *restrict img_d;
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
+	size_t aux1_pitch, aux2_pitch, img_pitch;
 
 	if(n <= 17 || (n - 1) % 16 == 0) {
 		n_init = 17;
@@ -162,38 +165,43 @@ void blur(int n, int width, int height, stbi_uc *img_d, unsigned short *aux1_d, 
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 2) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
+	cudaMallocPitch(&aux1_d, &aux1_pitch, sizeof(unsigned short) * width, height * 3);
+	aux1_pitch /= sizeof(unsigned short);
+	cudaMallocPitch(&aux2_d, &aux2_pitch, sizeof(unsigned short) * width, height * 3);
+	aux2_pitch /= sizeof(unsigned short);
+	cudaMallocPitch(&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
 	pascal(filter1, n_init);
 	pascal(filter2, 17);
 	cudaMalloc(&filter1_d, sizeof(int) * ((n_init >> 1) + 1));
 	cudaMalloc(&filter2_d, sizeof(int) * 9);
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * ((n_init >> 1) + 1), cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
-	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, n_init, filter1_d, aux1_d);
+	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
+	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
 	cudaDeviceSynchronize();
+	cudaError_t a = cudaGetLastError();
 	for(i = n_init; i < (n - 1); i += 16) {
-		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, 17, filter2_d, aux2_d);
+		cudaError_t b = cudaGetLastError();
+		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		cudaDeviceSynchronize();
-		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, 17, filter2_d, aux1_d);
+		cudaError_t c = cudaGetLastError();
+		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
 		cudaDeviceSynchronize();
 	}
-	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, n_init, filter1_d, img_d);
-	free(filter1);
-	free(filter2);
+	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
+	cudaMemcpy2D(img, sizeof(stbi_uc) * width * 3, img_d, img_pitch, sizeof(stbi_uc) * width * 3, height, cudaMemcpyDeviceToHost);
+	cudaError_t d = cudaGetLastError();
+	/*free(filter1);
+	free(filter2);*/
 }
 
-double test_blur_time(int n, int width, int height, stbi_uc *restrict img_d) {
+double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
-
+	
 	begin = clock();
-	if(blur(begin, n, width, height, img_d)) {
-		end = clock();
-		printf("Program failed");
-		return -(double)(end - begin) / CLOCKS_PER_SEC;
-	} else {
-		end = clock();
-		printf("Success");
-		return (double)(end - begin) / CLOCKS_PER_SEC;
-	}
+	blur(n, width, height, img);
+	end = clock();
+	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
 int main(void) {
