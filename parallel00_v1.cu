@@ -13,13 +13,13 @@
 #define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH 0
+#define WIDTH 4097
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 0
+#define SAVE_OUTPUT 1
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
@@ -37,6 +37,7 @@ void pascal(int *p, int n) {
 		p[k + 1] = p[k] * (n - k) / (k + 1);
 	}
 }
+
 
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
@@ -150,6 +151,13 @@ void kernel2b(const unsigned short *restrict img, int width, int height, size_t 
 	}
 }
 
+__global__ void ki() {
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	float ia, ib;
+	ia = ib = 0.0f;
+	ib += ia + tid;
+}
+
 void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
 	unsigned short *restrict aux1_d, *restrict aux2_d;
@@ -165,7 +173,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
-	cudaMallocPitch((void**)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
+	cudaMallocPitch((void **)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width * 3, height);
 	aux1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&aux2_d, &aux2_pitch, sizeof(unsigned short) * width * 3, height);
 	aux2_pitch /= sizeof(unsigned short);
@@ -178,19 +186,12 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
 	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
-	cudaDeviceSynchronize();
-	cudaError_t a = cudaGetLastError();
 	for(i = n_init; i < (n - 1); i += 16) {
-		cudaError_t b = cudaGetLastError();
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
-		cudaDeviceSynchronize();
-		cudaError_t c = cudaGetLastError();
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
-		cudaDeviceSynchronize();
 	}
 	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
 	cudaMemcpy2D(img, sizeof(stbi_uc) * width * 3, img_d, img_pitch, sizeof(stbi_uc) * width * 3, height, cudaMemcpyDeviceToHost);
-	cudaError_t d = cudaGetLastError();
 	free(filter1);
 	free(filter2);
 	cudaFree(aux1_d);
@@ -234,6 +235,12 @@ int main(void) {
 	}
 	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
+
+	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
+	dim3 threadsPerBlock(32, 32, 1);
+	ki << <blocks, threadsPerBlock >> > ();
+	cudaDeviceSynchronize();
+
 	f = 0;
 	for(i = 0; i < nk && !f; i++) {
 		memcpy(img_c, img, sizeof(stbi_uc) * width * height * 3);
