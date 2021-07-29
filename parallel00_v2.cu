@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 5
 #endif
 #ifndef WIDTH
 #define WIDTH 4097
@@ -62,7 +62,7 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE1(c, n - 9);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
@@ -70,27 +70,27 @@ __global__
 void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	z = blockIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
-			m = 0;
 			l = i + k - n / 2;
+			m = 0;
 			if(0 <= l && l < width) {
-				m = img[(j * img_pitch + l * 3) + z];
+				m = img[(z * height + j) * img_pitch + l];
 			}
 			l = i + n - 1 - k - n / 2;
 			if(0 <= l && l < width) {
-				m += img[(j * img_pitch + l * 3) + z];
+				m += img[(z * height + j) * img_pitch + l];
 			}
 			c += filter[k] * m;
 		}
 		l = i + k - n / 2;
 		if(0 <= l && l < width) {
-			c += filter[k] * img[(j * img_pitch + l * 3) + z];
+			c += filter[k] * img[(z * height + j) * img_pitch + l];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -98,27 +98,27 @@ __global__
 void kernel2a(const unsigned short *img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	z = blockIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
 			m = 0;
-			if(0 <= l && l < width) {
-				m = img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
-			if(0 <= l && l < width) {
-				m += img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
-		if(0 <= l && l < width) {
-			c += filter[k] * img[(l * img_pitch + i * 3) + z];
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -126,25 +126,25 @@ __global__
 void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, m, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	z = blockIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
 			m = 0;
-			if(0 <= l && l < width) {
-				m = img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
-			if(0 <= l && l < width) {
-				m += img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
-		if(0 <= l && l < width) {
-			c += filter[k] * img[(l * img_pitch + i * 3) + z];
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
 		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n + 7);
 	}
@@ -161,8 +161,10 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
 	unsigned short *restrict aux1_d, *restrict aux2_d;
 	stbi_uc *restrict img_d;
-	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
-	dim3 threadsPerBlock(32, 1, 32);
+	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
+	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock1(32, 1, 32);
 	size_t aux1_pitch, aux2_pitch, img_pitch;
 
 	if(n <= 17 || (n - 1) % 16 == 0) {
@@ -184,7 +186,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * ((n_init >> 1) + 1), cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
-	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
+	kernel1a << <blocks1, threadsPerBlock1 >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
 	for(i = n_init; i < (n - 1); i += 16) {
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
@@ -235,9 +237,12 @@ int main(void) {
 	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
 
-	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
-	dim3 threadsPerBlock(32, 1, 32);
+	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
+	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock1(32, 1, 32);
 	ki << <blocks, threadsPerBlock >> > ();
+	ki << <blocks1, threadsPerBlock1 >> > ();
 	cudaDeviceSynchronize();
 
 	f = 0;

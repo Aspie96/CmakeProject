@@ -38,7 +38,6 @@ void pascal(int *p, int n) {
 	}
 }
 
-
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, m, c;
@@ -63,7 +62,7 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE1(c, n - 9);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
@@ -76,22 +75,22 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
-			m = 0;
 			l = i + k - n / 2;
+			m = 0;
 			if(0 <= l && l < width) {
-				m = img[(j * img_pitch + l * 3) + z];
+				m = img[(z * height + j) * img_pitch + l];
 			}
 			l = i + n - 1 - k - n / 2;
 			if(0 <= l && l < width) {
-				m += img[(j * img_pitch + l * 3) + z];
+				m += img[(z * height + j) * img_pitch + l];
 			}
 			c += filter[k] * m;
 		}
 		l = i + k - n / 2;
 		if(0 <= l && l < width) {
-			c += filter[k] * img[(j * img_pitch + l * 3) + z];
+			c += filter[k] * img[(z * height + j) * img_pitch + l];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -106,20 +105,20 @@ void kernel2a(const unsigned short *img, int width, int height, size_t result_pi
 		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
 			m = 0;
-			if(0 <= l && l < width) {
-				m = img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
-			if(0 <= l && l < width) {
-				m += img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
-		if(0 <= l && l < width) {
-			c += filter[k] * img[(l * img_pitch + i * 3) + z];
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -134,18 +133,18 @@ void kernel2b(const unsigned short *restrict img, int width, int height, size_t 
 		for(k = 0; k < n >> 1; k++) {
 			l = j + k - n / 2;
 			m = 0;
-			if(0 <= l && l < width) {
-				m = img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m = img[(z * height + l) * img_pitch + i];
 			}
 			l = j + n - 1 - k - n / 2;
-			if(0 <= l && l < width) {
-				m += img[(l * img_pitch + i * 3) + z];
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * img_pitch + i];
 			}
 			c += filter[k] * m;
 		}
 		l = j + k - n / 2;
-		if(0 <= l && l < width) {
-			c += filter[k] * img[(l * img_pitch + i * 3) + z];
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
 		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n + 7);
 	}
@@ -204,7 +203,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
-	
+
 	begin = clock();
 	blur(n, width, height, img);
 	end = clock();
