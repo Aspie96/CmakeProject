@@ -174,11 +174,11 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
-	cudaMallocPitch(&aux1_d, &aux1_pitch, sizeof(unsigned short) * width, height * 3);
+	cudaMallocPitch((void **)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width, height * 3);
 	aux1_pitch /= sizeof(unsigned short);
-	cudaMallocPitch(&aux2_d, &aux2_pitch, sizeof(unsigned short) * width, height * 3);
+	cudaMallocPitch((void **)&aux2_d, &aux2_pitch, sizeof(unsigned short) * width, height * 3);
 	aux2_pitch /= sizeof(unsigned short);
-	cudaMallocPitch(&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
+	cudaMallocPitch((void **)&img_d, &img_pitch, sizeof(stbi_uc) * width * 3, height);
 	pascal(filter1, n_init);
 	pascal(filter2, 17);
 	cudaMalloc((void **)&filter1_d, sizeof(int) * ((n_init >> 1) + 1));
