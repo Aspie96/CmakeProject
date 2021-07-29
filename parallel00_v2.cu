@@ -126,8 +126,8 @@ __global__
 void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, m, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -191,7 +191,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
 	}
-	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
+	kernel2b << <blocks1, threadsPerBlock1 >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
 	cudaMemcpy2D(img, sizeof(stbi_uc) * width * 3, img_d, img_pitch, sizeof(stbi_uc) * width * 3, height, cudaMemcpyDeviceToHost);
 	free(filter1);
 	free(filter2);

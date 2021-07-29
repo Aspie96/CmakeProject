@@ -13,7 +13,7 @@
 #define N 5
 #endif
 #ifndef WIDTH
-#define WIDTH 0
+#define WIDTH 4097
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
@@ -42,8 +42,8 @@ __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, m, c;
 	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -163,6 +163,8 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	stbi_uc *restrict img_d;
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock1(32, 1, 32);
 	size_t aux1_pitch, aux2_pitch, img_pitch;
 
 	if(n <= 17 || (n - 1) % 16 == 0) {
@@ -172,7 +174,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	}
 	filter1 = (int *)malloc(sizeof(int) * ((n_init >> 1) + 1));
 	filter2 = (int *)malloc(sizeof(int) * 9);
-	cudaMallocPitch((void**)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width, height * 3);
+	cudaMallocPitch((void **)&aux1_d, &aux1_pitch, sizeof(unsigned short) * width, height * 3);
 	aux1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&aux2_d, &aux2_pitch, sizeof(unsigned short) * width, height * 3);
 	aux2_pitch /= sizeof(unsigned short);
@@ -184,7 +186,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * ((n_init >> 1) + 1), cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
-	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
+	kernel1a << <blocks1, threadsPerBlock1 >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
 	for(i = n_init; i < (n - 1); i += 16) {
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
@@ -199,7 +201,6 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaFree(filter1_d);
 	cudaFree(filter2_d);
 	cudaDeviceSynchronize();
-	cudaError_t e = cudaGetLastError();
 }
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
@@ -238,7 +239,10 @@ int main(void) {
 
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock1(32, 1, 32);
 	ki << <blocks, threadsPerBlock >> > ();
+	ki << <blocks1, threadsPerBlock1 >> > ();
 	cudaDeviceSynchronize();
 
 	f = 0;
