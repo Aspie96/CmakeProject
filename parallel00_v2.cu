@@ -10,16 +10,16 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 5
+#define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH 4097
+#define WIDTH 0
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
@@ -41,9 +41,9 @@ void pascal(int *p, int n) {
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, m, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
+	j = blockIdx.x * blockDim.x + threadIdx.x;
 	z = blockIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	i = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -69,9 +69,9 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 __global__
 void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
+	z = blockIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	i = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -97,9 +97,9 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 __global__
 void kernel2a(const unsigned short *img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
+	z = blockIdx.x;
 	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	i = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -125,9 +125,9 @@ void kernel2a(const unsigned short *img, int width, int height, size_t result_pi
 __global__
 void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, m, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	z = blockIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	z = blockIdx.x;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	i = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -161,9 +161,9 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
 	unsigned short *restrict aux1_d, *restrict aux2_d;
 	stbi_uc *restrict img_d;
-	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 threadsPerBlock(32, 32, 1);
-	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
+	dim3 blocks1((height + 31) / 32, 3, (width + 31) / 32);
 	dim3 threadsPerBlock1(32, 1, 32);
 	size_t aux1_pitch, aux2_pitch, img_pitch;
 
@@ -191,7 +191,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
 	}
-	kernel2b << <blocks1, threadsPerBlock1 >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
+	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);
 	cudaMemcpy2D(img, sizeof(stbi_uc) * width * 3, img_d, img_pitch, sizeof(stbi_uc) * width * 3, height, cudaMemcpyDeviceToHost);
 	free(filter1);
 	free(filter2);
@@ -237,9 +237,9 @@ int main(void) {
 	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
 
-	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 threadsPerBlock(32, 32, 1);
-	dim3 blocks1((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
+	dim3 blocks1((height + 31) / 32, 3, (width + 31) / 32);
 	dim3 threadsPerBlock1(32, 1, 32);
 	ki << <blocks, threadsPerBlock >> > ();
 	ki << <blocks1, threadsPerBlock1 >> > ();
