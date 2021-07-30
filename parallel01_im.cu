@@ -13,7 +13,7 @@
 #define N 13
 #endif
 #ifndef WIDTH
-#define WIDTH 0
+#define WIDTH 1
 #endif
 #ifndef HEIGHT
 #define HEIGHT WIDTH
