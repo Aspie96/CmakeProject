@@ -18,7 +18,7 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 				c += result[(j * img_pitch + l * 3) + z];
 			}
 		}
-		result[(j * result_pitc + i * 3) + z] = c / 17;
+		result[(j * result_pitch + i * 3) + z] = c / 17;
 	}
 }
 
