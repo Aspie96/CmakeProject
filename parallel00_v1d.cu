@@ -7,9 +7,9 @@
 __global__
 void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, unsigned short *restrict result) {
 	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
