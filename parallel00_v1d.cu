@@ -15,10 +15,10 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 		for(k = 0; k < n; k++) {
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += img[(z * height + j) * img_pitch + l];
+				c += result[(j * img_pitch + l * 3) + z];
 			}
 		}
-		result[(z * height + j) * result_pitch + i] = c / 17;
+		result[(j * result_pitc + i * 3) + z] = c / 17;
 	}
 }
 
