@@ -1,46 +1,75 @@
 ﻿#include <stdio.h>
 
+#ifdef __cplusplus
+//#ifndef _MSC_VER
+#define restrict __restrict__
+//#endif
+#endif
+
+void pascal(int *p, int n) {
+	n--;
+	p[0] = 1;
+	for(int k = 0; k < (n >> 1); k++) {
+		p[k + 1] = p[k] * (n - k) / (k + 1);
+	}
+}
+
+#define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
+
 //#ifndef _MSC_VER
 #define restrict __restrict__
 //#endif
 
 __global__
-void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, unsigned short *restrict result) {
-	int i, j, z, k, l, c;
+void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
+	int i, j, z, k, l, c, m;
 	z = blockIdx.x;
 	i = blockIdx.y * blockDim.y + threadIdx.y;
 	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
-		for(k = 0; k < n; k++) {
+		for(k = 0; k < n >> 1; k++) {
+			m = 0;
 			l = i + k - n / 2;
 			if(0 <= l && l < width) {
-				c += img[(j * img_pitch + l * 3) + z];
+				m = img[(j * img_pitch + l * 3) + z];
 			}
+			l = i + n - 1 - k - n / 2;
+			if(0 <= l && l < width) {
+				m += img[(j * img_pitch + l * 3) + z];
+			}
+			c += filter[k] * m;
 		}
-		result[(j * result_pitch + i * 3) + z] = c / 17;
+		l = i + k - n / 2;
+		if(0 <= l && l < width) {
+			c += filter[k] * img[(j * img_pitch + l * 3) + z];
+		}
+		result[(j * result_pitch + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
 void blur(int width, int height) {
-	int i;
+	int i, *restrict filter2, *restrict filter2_d;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
 	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
 	dim3 threadsPerBlock(1, 32, 32);
-	cudaError_t a;
+
+	filter2 = (int *)malloc(sizeof(int) * 9);
+	pascal(filter2, 17);
+	cudaMalloc((void **)&filter2_d, sizeof(int) * 9);
+	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 
 	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width, height * 3);
 	img1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel1b << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, img2);
+		kernel1b << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
 	cudaDeviceSynchronize();
-	a = cudaGetLastError();
 }
 
 int main(void) {
