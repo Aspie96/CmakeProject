@@ -183,7 +183,7 @@ void blur3(int width, int height) {
 int main(void) {
 	clock_t begin, end;
 	begin = clock();
-	blur1(4096, 4096);
+	blur3(4096, 4096);
 	end = clock();
 	printf("Time: %f", (double)(end - begin) / CLOCKS_PER_SEC);
 	return 0;
