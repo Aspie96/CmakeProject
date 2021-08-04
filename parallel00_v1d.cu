@@ -128,7 +128,7 @@ void kernel2a3(const unsigned short *restrict img, int width, int height, size_t
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(l * img_pitch + i * 3) + z];
 		}
-		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(j * result_pitch + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
