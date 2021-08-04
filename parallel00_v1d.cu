@@ -132,7 +132,7 @@ void kernel2a3(const unsigned short *restrict img, int width, int height, size_t
 	}
 }
 
-void blur(int width, int height) {
+void blur1(int width, int height) {
 	int i, *restrict filter2, *restrict filter2_d;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
@@ -144,12 +144,36 @@ void blur(int width, int height) {
 	cudaMalloc((void **)&filter2_d, sizeof(int) * 9);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 
+	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width, height * 3);
+	img1_pitch /= sizeof(unsigned short);
+	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
+	img2_pitch /= sizeof(unsigned short);
+	for(i = 0; i < 1000; i++) {
+		kernel2a1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
+	}
+	cudaFree(img1);
+	cudaFree(img2);
+	cudaDeviceSynchronize();
+}
+
+void blur3(int width, int height) {
+	int i, *restrict filter2, *restrict filter2_d;
+	size_t img1_pitch, img2_pitch;
+	unsigned short *restrict img1, *restrict img2;
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
+
+	filter2 = (int *)malloc(sizeof(int) * 9);
+	pascal(filter2, 17);
+	cudaMalloc((void **)&filter2_d, sizeof(int) * 9);
+	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
+
 	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width * 3, height);
 	img1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width * 3, height);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel2a3 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
+		kernel2a1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
@@ -159,7 +183,7 @@ void blur(int width, int height) {
 int main(void) {
 	clock_t begin, end;
 	begin = clock();
-	blur(4096, 4096);
+	blur1(4096, 4096);
 	end = clock();
 	printf("Time: %f", (double)(end - begin) / CLOCKS_PER_SEC);
 	return 0;
