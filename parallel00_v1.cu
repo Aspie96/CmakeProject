@@ -10,7 +10,7 @@
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
 #define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
 #ifndef N
-#define N 13
+#define N 7
 #endif
 #ifndef WIDTH
 #define WIDTH 0
@@ -19,7 +19,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 0
+#define SAVE_OUTPUT 1
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
@@ -118,7 +118,7 @@ void kernel2a(const unsigned short *img, int width, int height, size_t result_pi
 		if(0 <= l && l < height) {
 			c += filter[k] * img[(z * height + l) * img_pitch + i];
 		}
-		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n + 7);
+		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
