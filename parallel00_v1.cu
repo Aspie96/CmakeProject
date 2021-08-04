@@ -41,9 +41,9 @@ void pascal(int *p, int n) {
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, m, c;
-	z = blockIdx.x;
-	i = blockIdx.y * blockDim.y + threadIdx.y;
-	j = blockIdx.z * blockDim.z + threadIdx.z;
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -161,8 +161,6 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
 	unsigned short *restrict aux1_d, *restrict aux2_d;
 	stbi_uc *restrict img_d;
-	dim3 blocks1(3, (width + 31) / 32, (height + 31) / 32);
-	dim3 threadsPerBlock1(1, 32, 32);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
 	size_t aux1_pitch, aux2_pitch, img_pitch;
@@ -186,7 +184,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaMemcpy(filter1_d, filter1, sizeof(int) * ((n_init >> 1) + 1), cudaMemcpyHostToDevice);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
-	kernel1a << <blocks1, threadsPerBlock1 >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
+	kernel1a << <blocks, threadsPerBlock >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
 	for(i = n_init; i < (n - 1); i += 16) {
 		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
@@ -201,7 +199,6 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaFree(filter1_d);
 	cudaFree(filter2_d);
 	cudaDeviceSynchronize();
-	cudaError_t a = cudaGetLastError();
 }
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
@@ -238,11 +235,8 @@ int main(void) {
 	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
 
-	dim3 blocks1(3, (width + 31) / 32, (height + 31) / 32);
-	dim3 threadsPerBlock1(1, 32, 32);
 	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
 	dim3 threadsPerBlock(32, 32, 1);
-	ki << <blocks1, threadsPerBlock1 >> > ();
 	ki << <blocks, threadsPerBlock >> > ();
 	cudaDeviceSynchronize();
 
