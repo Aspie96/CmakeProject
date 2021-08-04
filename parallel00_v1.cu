@@ -188,7 +188,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	cudaMemcpy2D(img_d, img_pitch, img, sizeof(stbi_uc) * width * 3, sizeof(stbi_uc) * width * 3, height, cudaMemcpyHostToDevice);
 	kernel1a << <blocks1, threadsPerBlock1 >> > (img_d, width, height, aux1_pitch, img_pitch / sizeof(stbi_uc), n_init, filter1_d, aux1_d);
 	for(i = n_init; i < (n - 1); i += 16) {
-		//kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
+		kernel2a << <blocks, threadsPerBlock >> > (aux1_d, width, height, aux2_pitch, aux1_pitch, 17, filter2_d, aux2_d);
 		kernel1b << <blocks, threadsPerBlock >> > (aux2_d, width, height, aux1_pitch, aux2_pitch, 17, filter2_d, aux1_d);
 	}
 	kernel2b << <blocks, threadsPerBlock >> > (aux1_d, width, height, img_pitch / sizeof(stbi_uc), aux1_pitch, n_init, filter1_d, img_d);

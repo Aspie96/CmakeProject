@@ -62,7 +62,7 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(z * height + j) * result_pitch + i] = APPROX_DIVIDE1(c, n - 9);
+		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE1(c, n - 9);
 	}
 }
 
@@ -90,7 +90,7 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(z * height + j) * result_pitch + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
@@ -118,7 +118,7 @@ void kernel2a(const unsigned short *img, int width, int height, size_t result_pi
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(l * img_pitch + i * 3) + z];
 		}
-		result[(z * height + j) * result_pitch + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(j * result_pitc + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
 	}
 }
 
