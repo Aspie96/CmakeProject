@@ -160,8 +160,8 @@ void blur3(int width, int height) {
 	int i, *restrict filter2, *restrict filter2_d;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
-	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
-	dim3 threadsPerBlock(1, 32, 32);
+	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock(32, 1, 32);
 
 	filter2 = (int *)malloc(sizeof(int) * 9);
 	pascal(filter2, 17);
