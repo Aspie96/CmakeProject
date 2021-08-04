@@ -144,9 +144,9 @@ void blur(int width, int height) {
 	cudaMalloc((void **)&filter2_d, sizeof(int) * 9);
 	cudaMemcpy(filter2_d, filter2, sizeof(int) * 9, cudaMemcpyHostToDevice);
 
-	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width, height * 3);
+	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width * 3, height);
 	img1_pitch /= sizeof(unsigned short);
-	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
+	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width * 3, height);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
 		kernel2a3 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
