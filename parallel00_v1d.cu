@@ -49,6 +49,34 @@ void kernel1b1(const unsigned short *restrict img, int width, int height, size_t
 }
 
 __global__
+void kernel2a1(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
+	int i, j, z, k, l, m, c;
+	i = blockIdx.x * blockDim.x + threadIdx.x;
+	j = blockIdx.y * blockDim.y + threadIdx.y;
+	z = blockIdx.z;
+	if(i < width && j < height) {
+		c = 0;
+		for(k = 0; k < n >> 1; k++) {
+			l = j + k - n / 2;
+			m = 0;
+			if(0 <= l && l < height) {
+				m = img[(z * height + l) * img_pitch + i];
+			}
+			l = j + n - 1 - k - n / 2;
+			if(0 <= l && l < height) {
+				m += img[(z * height + l) * img_pitch + i];
+			}
+			c += filter[k] * m;
+		}
+		l = j + k - n / 2;
+		if(0 <= l && l < height) {
+			c += filter[k] * img[(z * height + l) * img_pitch + i];
+		}
+		result[(z * height + j) * result_pitch + i] = APPROX_DIVIDE2(c, n - 1);
+	}
+}
+
+__global__
 void kernel1b3(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
 	z = blockIdx.x;
@@ -121,7 +149,7 @@ void blur(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel1b1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
+		kernel2a1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
