@@ -8,8 +8,6 @@ void pascal(int *p, int n) {
 	}
 }
 
-#define APPROX_DIVIDE2(A, B) (((A) >> (B)) + (((A) >> ((B) - 1)) & 1))
-
 __global__
 void kernel1(unsigned short *__restrict__ result,const unsigned short *__restrict__ img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *__restrict__ filter) {
 	int i, j, z, k, l, c, m;
@@ -34,7 +32,7 @@ void kernel1(unsigned short *__restrict__ result,const unsigned short *__restric
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(z * height + j) * img_pitch + l];
 		}
-		result[(z * height + j) * result_pitch + i] = APPROX_DIVIDE2(c, n - 1);
+		result[(z * height + j) * result_pitch + i] = c >> (n - 1);
 	}
 }
 
@@ -62,7 +60,7 @@ void kernel2(unsigned short *__restrict__ result, const unsigned short *__restri
 		if(0 <= l && l < width) {
 			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
-		result[(j * result_pitch + i * 3) + z] = APPROX_DIVIDE2(c, n - 1);
+		result[(j * result_pitch + i * 3) + z] = c >> (n - 1);
 	}
 }
 
@@ -83,7 +81,8 @@ void blur(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel2 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
+		// CALL kerne1 OR kernel2
+		kernel1 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
