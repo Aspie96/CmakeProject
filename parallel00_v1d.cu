@@ -83,7 +83,7 @@ void blur(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel1 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
+		kernel2 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
