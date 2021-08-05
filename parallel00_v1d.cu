@@ -21,7 +21,7 @@ void pascal(int *p, int n) {
 //#endif
 
 __global__
-void kernel1b1(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, unsigned short *restrict result) {
+void kernel1b1(unsigned short *restrict result, const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n) {
 	int i, j, z, k, l, c, m;
 	z = blockIdx.x;
 	i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -77,7 +77,7 @@ void kernel2a1(const unsigned short *restrict img, int width, int height, size_t
 }
 
 __global__
-void kernel1b3(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, unsigned short *restrict result) {
+void kernel1b3(unsigned short *restrict result, const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n) {
 	int i, j, z, k, l, c, m;
 	z = blockIdx.x;
 	i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -144,7 +144,7 @@ void blur1(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 10; i++) {
-		kernel1b1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, img2);
+		kernel1b1 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
@@ -155,8 +155,8 @@ void blur3(int width, int height) {
 	int i;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
-	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
-	dim3 threadsPerBlock(32, 1, 32);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
 
 	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width * 3, height);
 	img1_pitch /= sizeof(unsigned short);
