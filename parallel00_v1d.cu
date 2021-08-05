@@ -143,7 +143,7 @@ void blur1(int width, int height) {
 	img1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < 1000; i++) {
 		kernel1b1 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17);
 	}
 	cudaFree(img1);
@@ -162,7 +162,7 @@ void blur3(int width, int height) {
 	img1_pitch /= sizeof(unsigned short);
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width * 3, height);
 	img2_pitch /= sizeof(unsigned short);
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < 1000; i++) {
 		kernel1b3 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17);
 	}
 	cudaFree(img1);
@@ -173,7 +173,7 @@ void blur3(int width, int height) {
 int main(void) {
 	clock_t begin, end;
 	begin = clock();
-	blur1(4096, 4096);
+	blur3(4096, 4096);
 	end = clock();
 	printf("Time: %f", (double)(end - begin) / CLOCKS_PER_SEC);
 	return 0;
