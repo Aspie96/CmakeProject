@@ -155,8 +155,8 @@ void blur3(int width, int height) {
 	int i;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
-	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
-	dim3 threadsPerBlock(1, 32, 32);
+	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock(32, 1, 32);
 
 	cudaMallocPitch((void **)&img1, &img1_pitch, sizeof(unsigned short) * width * 3, height);
 	img1_pitch /= sizeof(unsigned short);
