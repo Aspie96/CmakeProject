@@ -23,9 +23,9 @@ void pascal(int *p, int n) {
 __global__
 void kernel1b1(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c, m;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n >> 1; k++) {
@@ -136,8 +136,8 @@ void blur1(int width, int height) {
 	int i, *restrict filter2, *restrict filter2_d;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
-	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
 
 	filter2 = (int *)malloc(sizeof(int) * 9);
 	pascal(filter2, 17);
@@ -149,7 +149,7 @@ void blur1(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width, height * 3);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel2a1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
+		kernel1b1 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
@@ -160,8 +160,8 @@ void blur3(int width, int height) {
 	int i, *restrict filter2, *restrict filter2_d;
 	size_t img1_pitch, img2_pitch;
 	unsigned short *restrict img1, *restrict img2;
-	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
-	dim3 threadsPerBlock(1, 32, 32);
+	dim3 blocks((width + 31) / 32, 3, (height + 31) / 32);
+	dim3 threadsPerBlock(32, 1, 32);
 
 	filter2 = (int *)malloc(sizeof(int) * 9);
 	pascal(filter2, 17);
@@ -173,7 +173,7 @@ void blur3(int width, int height) {
 	cudaMallocPitch((void **)&img2, &img2_pitch, sizeof(unsigned short) * width * 3, height);
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
-		kernel2a3 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
+		kernel1b3 << <blocks, threadsPerBlock >> > (img1, width, height, img2_pitch, img1_pitch, 17, filter2_d, img2);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
@@ -183,7 +183,7 @@ void blur3(int width, int height) {
 int main(void) {
 	clock_t begin, end;
 	begin = clock();
-	blur1(4096, 4096);
+	blur3(4096, 4096);
 	end = clock();
 	printf("Time: %f", (double)(end - begin) / CLOCKS_PER_SEC);
 	return 0;
