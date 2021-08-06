@@ -82,7 +82,7 @@ void blur(int width, int height) {
 	img2_pitch /= sizeof(unsigned short);
 	for(i = 0; i < 1000; i++) {
 		// CALL kerne1 OR kernel2
-		kernel2 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
+		kernel1 << <blocks, threadsPerBlock >> > (img2, img1, width, height, img2_pitch, img1_pitch, 17, filter_d);
 	}
 	cudaFree(img1);
 	cudaFree(img2);
