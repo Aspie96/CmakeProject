@@ -19,7 +19,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
@@ -49,19 +49,18 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 		for(k = 0; k < n >> 1; k++) {
 			m = 0;
 			l = i + k - n / 2;
-			/*if(0 <= l && l < width)*/ {
+			if(0 <= l && l < width) {
 				m = img[(j * img_pitch + l * 3) + z];
 			}
 			l = i + n - 1 - k - n / 2;
-			/*if(0 <= l && l < width)*/ {
+			if(0 <= l && l < width) {
 				m += img[(j * img_pitch + l * 3) + z];
 			}
-			c += filter[k] * (255 + 255);// m;
+			c += filter[k] * m;
 		}
 		l = i + k - n / 2;
-		/*if(0 <= l && l < width)*/ {
-			c += filter[k] * 255;// img[(j * img_pitch + l * 3) + z];
-			printf("%d\n", filter[k]);
+		if(0 <= l && l < width) {
+			c += filter[k] * img[(j * img_pitch + l * 3) + z];
 		}
 		result[(z * height + j) * result_pitc + i] = APPROX_DIVIDE1(c, n - 9);
 	}
