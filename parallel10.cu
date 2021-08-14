@@ -5,6 +5,7 @@
 #include <cstdlib>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
+#include <unistd.h>
 
 #define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
@@ -253,6 +254,7 @@ int main(void) {
 			memcpy(img, img_c, sizeof(stbi_uc) * width * height * 3);
 			stbi_write_bmp(fname2, width, height, 3, img);
 		}
+		sleep(5);
 	}
 	printf("\n");
 	free(ns);
