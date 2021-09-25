@@ -30,6 +30,9 @@
 #ifndef IMGPATH
 #define IMGPATH "../../../img2.png"
 #endif
+#ifndef IT
+#define IT 1
+#endif
 
 __constant__ int filter1_d[9];
 __constant__ int filter2_d[9];
@@ -202,10 +205,13 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 }
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
+	int i;
 	clock_t begin, end;
 
 	begin = clock();
-	blur(n, width, height, img);
+	for(i = 0; i < IT; i++) {
+		blur(n, width, height, img);
+	}
 	end = clock();
 	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
