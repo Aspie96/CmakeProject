@@ -5,6 +5,7 @@
 #include <cstdlib>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
+#include <cstdlib>
 
 #define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
@@ -206,6 +207,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
+	int i;
 
 	begin = clock();
 	for(i = 0; i < IT; i++) {
