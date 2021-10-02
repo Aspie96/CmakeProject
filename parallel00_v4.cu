@@ -46,8 +46,8 @@ void pascal(int *p, int n) {
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	z = blockIdx.y;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
 	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
@@ -64,9 +64,9 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 __global__
 void kernel1b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
@@ -82,9 +82,9 @@ void kernel1b(const unsigned short *restrict img, int width, int height, size_t 
 __global__
 void kernel2a(const unsigned short *img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, unsigned short *restrict result) {
 	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
@@ -100,9 +100,9 @@ void kernel2a(const unsigned short *img, int width, int height, size_t result_pi
 __global__
 void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitch, size_t img_pitch, int n, const int *restrict filter, stbi_uc *restrict result) {
 	int i, j, z, k, l, c;
-	i = blockIdx.x * blockDim.x + threadIdx.x;
-	j = blockIdx.y * blockDim.y + threadIdx.y;
-	z = blockIdx.z;
+	z = blockIdx.x;
+	i = blockIdx.y * blockDim.y + threadIdx.y;
+	j = blockIdx.z * blockDim.z + threadIdx.z;
 	if(i < width && j < height) {
 		c = 0;
 		for(k = 0; k < n; k++) {
@@ -126,8 +126,8 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 	int *restrict filter1, *restrict filter2, *restrict filter1_d, *restrict filter2_d, n_init, i;
 	unsigned short *restrict aux1_d, *restrict aux2_d;
 	stbi_uc *restrict img_d;
-	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
 	size_t aux1_pitch, aux2_pitch, img_pitch;
 
 	if(n <= 17 || (n - 1) % 16 == 0) {
