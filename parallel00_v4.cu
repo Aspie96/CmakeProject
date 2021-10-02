@@ -203,8 +203,8 @@ int main(void) {
 	img_c = (stbi_uc *)malloc(sizeof(stbi_uc) * width * height * 3);
 	printf("Size of image: %dx%d\n", width, height);
 
-	dim3 blocks((width + 31) / 32, (height + 31) / 32, 3);
-	dim3 threadsPerBlock(32, 32, 1);
+	dim3 blocks(3, (width + 31) / 32, (height + 31) / 32);
+	dim3 threadsPerBlock(1, 32, 32);
 	ki << <blocks, threadsPerBlock >> > ();
 	cudaDeviceSynchronize();
 
