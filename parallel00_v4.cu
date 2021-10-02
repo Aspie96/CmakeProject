@@ -169,6 +169,7 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
+	int i;
 
 	begin = clock();
 	for(i = 0; i < IT; i++) {
