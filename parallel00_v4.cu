@@ -30,6 +30,9 @@
 #ifndef IMGPATH
 #define IMGPATH "../../../img2.png"
 #endif
+#ifndef IT
+#define IT 1
+#endif
 
 void pascal(int *p, int n) {
 	n--;
@@ -166,7 +169,9 @@ double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
 
 	begin = clock();
-	blur(n, width, height, img);
+	for(i = 0; i < IT; i++) {
+		blur(n, width, height, img);
+	}
 	end = clock();
 	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
