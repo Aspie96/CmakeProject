@@ -5,6 +5,7 @@
 #include <cstdlib>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
+#include <cstdlib>
 
 #define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
@@ -19,7 +20,7 @@
 #define HEIGHT WIDTH
 #endif
 #ifndef SAVE_OUTPUT
-#define SAVE_OUTPUT 1
+#define SAVE_OUTPUT 0
 #endif
 #ifdef __cplusplus
 //#ifndef _MSC_VER
@@ -30,6 +31,9 @@
 #define IMGPATH "../../../img2.png"
 #endif
 #define NBLOCK 8
+#ifndef IT
+#define IT 1
+#endif
 
 void pascal(int *p, int n) {
 	n--;
@@ -236,9 +240,12 @@ void blur(int n, int width, int height, stbi_uc *restrict img) {
 
 double test_blur_time(int n, int width, int height, stbi_uc *img) {
 	clock_t begin, end;
+	int i;
 
 	begin = clock();
-	blur(n, width, height, img);
+	for(i = 0; i < IT; i++) {
+		blur(n, width, height, img);
+	}
 	end = clock();
 	return (double)(end - begin) / CLOCKS_PER_SEC;
 }
