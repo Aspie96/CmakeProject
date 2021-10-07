@@ -5,6 +5,7 @@
 #include <cstdlib>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb_image_resize.h"
+#include <cstdlib>
 
 #define S_R_SHIFT(A, B)	(((B) >= 0) ? ((A) >> (B)) : (A) << -(B))
 #define APPROX_DIVIDE1(A, B) (S_R_SHIFT(A, B) + (S_R_SHIFT(A, (B) - 1) & 1))
@@ -30,6 +31,9 @@
 #define IMGPATH "../../../img2.png"
 #endif
 #define NBLOCK 8
+#ifndef IT
+#define IT 1
+#endif
 
 
 __constant__ int filter1_d[9];
