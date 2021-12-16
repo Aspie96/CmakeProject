@@ -48,7 +48,7 @@ void pascal(int *p, int n) {
 
 __global__
 void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, int nblock, unsigned short *restrict result) {
-	int i, j, z, k, l, c, b, m, f;
+	int i, j, z, k, c, b, f;
 	extern __shared__ unsigned short tile[];
 	z = blockIdx.x;
 	j = blockIdx.z * blockDim.z + threadIdx.z;
@@ -85,7 +85,7 @@ void kernel1a(const stbi_uc *restrict img, int width, int height, size_t result_
 
 __global__
 void kernel1b(unsigned short *img, int width, int height, size_t result_pitc, size_t img_pitch, int n, int nblock, unsigned short *restrict result) {
-	int i, j, z, k, l, c, b, m, f;
+	int i, j, z, k, c, b, f;
 	extern __shared__ unsigned short tile[];
 	z = blockIdx.x;
 	j = blockIdx.z * blockDim.z + threadIdx.z;
@@ -122,7 +122,7 @@ void kernel1b(unsigned short *img, int width, int height, size_t result_pitc, si
 
 __global__
 void kernel2a(unsigned short *img, int width, int height, size_t result_pitc, size_t img_pitch, int n, int nblock, unsigned short *restrict result) {
-	int i, j, z, k, l, c, b;
+	int i, j, z, k, c, b;
 	extern __shared__ unsigned short tile[];
 	z = blockIdx.x;
 	i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -153,7 +153,7 @@ void kernel2a(unsigned short *img, int width, int height, size_t result_pitc, si
 
 __global__
 void kernel2b(const unsigned short *restrict img, int width, int height, size_t result_pitc, size_t img_pitch, int n, int nblock, stbi_uc *restrict result) {
-	int i, j, z, k, l, c, b;
+	int i, j, z, k, c, b;
 	extern __shared__ unsigned short tile[];
 	z = blockIdx.x;
 	i = blockIdx.y * blockDim.y + threadIdx.y;
